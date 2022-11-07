@@ -6,12 +6,8 @@ if __name__ == '__main__':
     # object1 xyz (0, 50 -20)  joint (0, 105, -60)
 
     trajgen = TrajectoryLinear()
-    whole_traj = trajgen.get_whole_traj([-90, 100, -100], [5, 55, -100], 3)
-    # whole_traj = trajgen.get_whole_traj([-90, 100, -100], [0, 105, -60], 3)
-
-    whole_traj[0] = whole_traj[0] + ['fire'] + list(reversed(whole_traj[0])) + ['fire']
-    whole_traj[1] = whole_traj[1] + ['fire'] + list(reversed(whole_traj[1])) + ['fire']
-    whole_traj[2] = whole_traj[2] + ['fire'] + list(reversed(whole_traj[2])) + ['fire']
+    # whole_traj = trajgen.get_whole_traj([[-90, 100, -100], [5, 55, -100], ['fire'], [-90, 100, -100]], 3)
+    whole_traj = trajgen.get_whole_traj([[-90, 100, -100], [0, 105, -60], ['fire'], [-90, 100, -100], ['fire']], 3)
 
     return_str = 'angle;'
     for trajectory in whole_traj:

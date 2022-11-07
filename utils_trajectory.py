@@ -40,24 +40,38 @@ class Trajectory(object):
         """
         raise NotImplementedError
 
-    def get_whole_traj(self, init_theta, end_theta, end_t):
+    def get_whole_traj(self, thetalist: list, end_t):
         """
         get whole trajectory
-        :param init_theta: initial angle
-        :param end_theta: end angle
+        :param thetalist: list of angle
         :param end_t: final time
         :return: list of lentgh 3
         """
-        assert len(init_theta) == len(end_theta) == self.num_joints, '[ERROR] Joints doesnt match! '
-
-        func_list = self._get_traj_func(init_theta, end_theta, end_t)
+        # assert len(thetalist[0]) == self.num_joints, '[ERROR] Joints doesnt match! '
 
         angle_list = [[] for i in range(self.num_joints)]
-        ticks_list = np.arange(0.0, end_t, 1 / self.frequency)
-        for t in ticks_list:
-            angles = self._get_angles(t, func_list)
-            for i in range(self.num_joints):
-                angle_list[i].append(angles[i])
+        init_theta = thetalist[0]
+        end_theta = init_theta
+        num = 0
+        while num < len(thetalist) - 1:
+            if thetalist[num + 1] == ['fire']:
+                init_theta = end_theta
+                num += 1
+                for i in range(self.num_joints):
+                    angle_list[i].append('fire')
+                continue
+            elif thetalist[num] == ['fire']:
+                pass
+            elif num != 0 and thetalist[num - 1] != ['fire']:
+                init_theta = thetalist[num]
+            end_theta = thetalist[num + 1]
+            func_list = self._get_traj_func(init_theta, end_theta, end_t)
+            ticks_list = np.arange(0.0, end_t, 1 / self.frequency)
+            for t in ticks_list:
+                angles = self._get_angles(t, func_list)
+                for i in range(self.num_joints):
+                    angle_list[i].append(angles[i])
+            num += 1
 
         return angle_list
 
@@ -75,4 +89,3 @@ class TrajectoryLinear(Trajectory):
             self.b.append(init)
             func_list.append(lambda x, i: self.k[i] * x + self.b[i])
         return func_list
-

@@ -2,6 +2,7 @@
 import numpy as np
 from functools import partial
 from sympy import Symbol, solve
+import matplotlib.pyplot as plt
 
 
 class Trajectory(object):
@@ -42,9 +43,10 @@ class Trajectory(object):
         """
         raise NotImplementedError
 
-    def get_whole_traj(self, thetalist: list, timelist: list, firelist=None):
+    def get_whole_traj(self, thetalist: list, timelist: list, firelist=None, visual=False):
         """
         get whole trajectory
+        :param visual:
         :param firelist: fire command list
         :param thetalist: list of dof
         :param timelist: time list
@@ -64,6 +66,11 @@ class Trajectory(object):
                 for i in range(self.num_dofs):
                     value_list[i].append(angles[i])
 
+        if visual:
+            for i in range(self.num_dofs):
+                plt.plot(np.arange(0, len(value_list[i]), 1), value_list[i])
+            plt.show()
+
         for t in firelist:
             for i in range(self.num_dofs):
                 value_list[i].insert(int(t * self.frequency), 'fire')
@@ -82,8 +89,6 @@ class TrajLinearTS(Trajectory):
         self.k = []
         self.b = []
         for init, end in zip(init_theta, end_theta):
-            # self.k.append((end - init) / (end_t - init_t))
-            # self.b.append(init)
             k = Symbol('k')
             b = Symbol('b')
             param = solve([k * init_t + b - init,
@@ -130,27 +135,37 @@ class TrajCubicContiguousTS(TrajCubicNonContiguousTS):
     # Cubic trajectory
     def __init__(self, num_dofs=3, frequency=50):
         super().__init__(num_dofs=num_dofs, frequency=frequency)
+        self.v_last = [0, 0, 0]  # velocity
+        self.v = [0, 0, 0]
 
-    def get_whole_traj(self, thetalist: list, timelist: list, firelist=None):
+    def get_whole_traj(self, thetalist: list, timelist: list, firelist=None, visual=False):
         assert len(thetalist) == len(timelist)
         assert firelist is None or max(firelist) <= max(timelist)
 
-        v_last = 0  # velocity
         value_list = [[] for i in range(self.num_dofs)]
         for num in range(len(thetalist) - 1):
             init_theta = thetalist[num]
             end_theta = thetalist[num + 1]
             if num + 1 < len(thetalist) - 1:  # intermediate point
-                pass
+                for i in range(self.num_dofs):
+                    if np.sign(end_theta[i] - init_theta[i]) == np.sign(thetalist[num + 2][i] - end_theta[i]):
+                        self.v[i] = (end_theta[i] - init_theta[i]) / (timelist[num + 1] - timelist[num])
+                    else:
+                        self.v[i] = 0
             else:  # last point
-                v = 0
-            func_list = self._get_traj_func(init_theta, end_theta, timelist[num], timelist[num + 1])
-            v_last = v
-            ticks_list = np.arange(timelist[num], timelist[num + 1], 1 / self.frequency)
+                self.v = [0, 0, 0]
+            func_list = self._get_traj_func(init_theta, end_theta, timelist[num], timelist[num + 1], self.v_last, self.v)
+            self.v_last = self.v.copy()
+            ticks_list = np.arange(timelist[num], timelist[num + 1] + 1 / self.frequency, 1 / self.frequency)
             for t in ticks_list:
                 angles = self._get_values(t, func_list)
                 for i in range(self.num_dofs):
                     value_list[i].append(angles[i])
+
+        if visual:
+            for i in range(self.num_dofs):
+                plt.plot(np.arange(0, len(value_list[i]), 1), value_list[i])
+            plt.show()
 
         for t in firelist:
             for i in range(self.num_dofs):

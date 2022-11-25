@@ -148,8 +148,8 @@ class TrajCubicContiguousTS(TrajCubicNonContiguousTS):
             end_theta = thetalist[num + 1]
             if num + 1 < len(thetalist) - 1:  # intermediate point
                 for i in range(self.num_dofs):
-                    if np.sign(end_theta[i] - init_theta[i]) == np.sign(thetalist[num + 2][i] - end_theta[i]):
-                        self.v[i] = (end_theta[i] - init_theta[i]) / (timelist[num + 1] - timelist[num])
+                    if np.sign(end_theta[i] - init_theta[i]) == np.sign(thetalist[num + 2][i] - end_theta[i]):  # if in the same direction
+                        self.v[i] = (thetalist[num + 2][i] - init_theta[i]) / (timelist[num + 2] - timelist[num])  # midpoint velocity is
                     else:
                         self.v[i] = 0
             else:  # last point
@@ -161,6 +161,8 @@ class TrajCubicContiguousTS(TrajCubicNonContiguousTS):
                 angles = self._get_values(t, func_list)
                 for i in range(self.num_dofs):
                     value_list[i].append(angles[i])
+            for i in range(self.num_dofs):
+                value_list[i][-1] = np.round(value_list[i][-1])  # eliminate residue
 
         if visual:
             for i in range(self.num_dofs):

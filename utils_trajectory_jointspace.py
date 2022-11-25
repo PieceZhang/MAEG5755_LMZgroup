@@ -76,7 +76,7 @@ class Trajectory(object):
         return angle_list
 
 
-class TrajectoryLinear(Trajectory):
+class TrajLinear(Trajectory):
     def __init__(self, num_joints=3, frequency=50):
         super().__init__(num_joints=num_joints, frequency=frequency)
 

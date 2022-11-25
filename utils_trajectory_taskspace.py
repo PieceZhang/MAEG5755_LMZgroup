@@ -31,7 +31,7 @@ class Trajectory(object):
 
         return [__dof_limit(i, f(t, i)) for i, f in enumerate(func)]
 
-    def _get_traj_func(self, init_theta, end_theta, end_t):
+    def _get_traj_func(self, init_theta, end_theta, init_t, end_t):
         """
         get trajectory function for each dof
         Must be overriden manually
@@ -57,9 +57,8 @@ class Trajectory(object):
         for num in range(len(thetalist) - 1):
             init_theta = thetalist[num]
             end_theta = thetalist[num + 1]
-            end_t = timelist[num + 1] - timelist[num]  # time duation of current step
-            func_list = self._get_traj_func(init_theta, end_theta, end_t)
-            ticks_list = np.arange(0.0, end_t, 1 / self.frequency)
+            func_list = self._get_traj_func(init_theta, end_theta, timelist[num], timelist[num + 1])
+            ticks_list = np.arange(0.0, timelist[num + 1] - timelist[num], 1 / self.frequency)
             for t in ticks_list:
                 angles = self._get_values(t, func_list)
                 for i in range(self.num_dofs):
@@ -77,13 +76,13 @@ class TrajLinearTS(Trajectory):
     def __init__(self, num_dofs=3, frequency=50):
         super().__init__(num_dofs=num_dofs, frequency=frequency)
 
-    def _get_traj_func(self, init_theta, end_theta, end_t):
+    def _get_traj_func(self, init_theta, end_theta, init_t, end_t):
         assert len(init_theta) == len(end_theta) == self.num_dofs
         func_list = []
         self.k = []
         self.b = []
         for init, end in zip(init_theta, end_theta):
-            self.k.append((end - init) / end_t)
+            self.k.append((end - init) / (end_t - init_t))
             self.b.append(init)
             func_list.append(lambda x, i: self.k[i] * x + self.b[i])
         return func_list
@@ -94,7 +93,7 @@ class TrajLinearTS(Trajectory):
 #     def __init__(self, num_dofs=3, frequency=50):
 #         super().__init__(num_dofs=num_dofs, frequency=frequency)
 #
-#     def _get_traj_func(self, init_theta, end_theta, end_t):
+#     def _get_traj_func(self, init_theta, end_theta, init_t, end_t):
 #         assert len(init_theta) == len(end_theta) == self.num_dofs
 #         func_list = []
 #         if type(init_theta[0]) is int:
@@ -113,7 +112,7 @@ class TrajLinearTS(Trajectory):
 #     def __init__(self, num_dofs=3, frequency=50):
 #         super().__init__(num_dofs=num_dofs, frequency=frequency)
 #
-#     def _get_traj_func(self, init_theta, end_theta, end_t):
+#     def _get_traj_func(self, init_theta, end_theta, init_t, end_t):
 #         assert len(init_theta) == len(end_theta) == self.num_dofs
 #         func_list = []
 #         if type(init_theta[0]) is list:
@@ -124,4 +123,3 @@ class TrajLinearTS(Trajectory):
 #         for init, end in zip(init_theta, end_theta):
 #             func_list.append()
 #         return func_list
-

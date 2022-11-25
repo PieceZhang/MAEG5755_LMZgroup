@@ -112,13 +112,13 @@ class TrajCubicNonContiguousTS(Trajectory):
         v1 = iter([0 for _ in range(self.num_dofs)]) if v1 is None else iter(v1)
         v2 = iter([0 for _ in range(self.num_dofs)]) if v2 is None else iter(v2)
         for init, end in zip(init_theta, end_theta):
-            symsparam = [[Symbol('p3'), Symbol('p2'), Symbol('p1'), Symbol('p0')]]
-            params = solve([symsparam[0][0] * t1 ** 3 + symsparam[0][1] * t1 ** 2 + symsparam[0][2] * t1 + symsparam[0][3] - init,
-                            symsparam[0][0] * t2 ** 3 + symsparam[0][1] * t2 ** 2 + symsparam[0][2] * t2 + symsparam[0][3] - end,
-                            3 * symsparam[0][0] * t1 ** 2 + 2 * symsparam[0][1] * t1 + symsparam[0][2] - v1.__next__(),
-                            3 * symsparam[0][0] * t2 ** 2 + 2 * symsparam[0][1] * t2 + symsparam[0][2] - v2.__next__()],
-                           symsparam[0])
-            func_list.append(partial(np.polyval, p=[float(params[symsparam[0][_]]) for _ in range(4)]))
+            symsparam = [Symbol('p3'), Symbol('p2'), Symbol('p1'), Symbol('p0')]
+            params = solve([symsparam[0] * t1 ** 3 + symsparam[1] * t1 ** 2 + symsparam[2] * t1 + symsparam[3] - init,
+                            symsparam[0] * t2 ** 3 + symsparam[1] * t2 ** 2 + symsparam[2] * t2 + symsparam[3] - end,
+                            3 * symsparam[0] * t1 ** 2 + 2 * symsparam[1] * t1 + symsparam[2] - v1.__next__(),
+                            3 * symsparam[0] * t2 ** 2 + 2 * symsparam[1] * t2 + symsparam[2] - v2.__next__()],
+                           symsparam)
+            func_list.append(partial(np.polyval, p=[float(params[symsparam[_]]) for _ in range(len(symsparam))]))
         return func_list
 
     def _get_values(self, t, func):
@@ -149,7 +149,7 @@ class TrajCubicContiguousTS(TrajCubicNonContiguousTS):
             if num + 1 < len(thetalist) - 1:  # intermediate point
                 for i in range(self.num_dofs):
                     if np.sign(end_theta[i] - init_theta[i]) == np.sign(thetalist[num + 2][i] - end_theta[i]):  # if in the same direction
-                        v[i] = (thetalist[num + 2][i] - init_theta[i]) / (timelist[num + 2] - timelist[num])  # midpoint velocity is
+                        v[i] = (thetalist[num + 2][i] - init_theta[i]) / (timelist[num + 2] - timelist[num])  # midpoint velocity
                     else:
                         v[i] = 0
             else:  # last point
@@ -176,24 +176,32 @@ class TrajCubicContiguousTS(TrajCubicNonContiguousTS):
         return value_list
 
 
-# class TrajQuinticContiguousTS(TrajCubicContiguousTS):
-#     # Quintic trajectory
-#     def __init__(self, num_dofs=3, frequency=50):
-#         super().__init__(num_dofs=num_dofs, frequency=frequency)
-#
-#     def _get_traj_func(self, init_theta, end_theta, init_t, end_t, v1=None, v2=None):
-#         assert len(init_theta) == len(end_theta) == self.num_dofs and type(init_theta[0]) is int
-#         func_list = []
-#         t1 = init_t
-#         t2 = end_t
-#         v1 = iter([0 for _ in range(self.num_dofs)]) if v1 is None else iter(v1)
-#         v2 = iter([0 for _ in range(self.num_dofs)]) if v2 is None else iter(v2)
-#         for init, end in zip(init_theta, end_theta):
-#             symsparam = [[Symbol('p3'), Symbol('p2'), Symbol('p1'), Symbol('p0')]]
-#             params = solve([symsparam[0][0] * t1 ** 3 + symsparam[0][1] * t1 ** 2 + symsparam[0][2] * t1 + symsparam[0][3] - init,
-#                             symsparam[0][0] * t2 ** 3 + symsparam[0][1] * t2 ** 2 + symsparam[0][2] * t2 + symsparam[0][3] - end,
-#                             3 * symsparam[0][0] * t1 ** 2 + 2 * symsparam[0][1] * t1 + symsparam[0][2] - v1.__next__(),
-#                             3 * symsparam[0][0] * t2 ** 2 + 2 * symsparam[0][1] * t2 + symsparam[0][2] - v2.__next__()],
-#                            symsparam[0])
-#             func_list.append(partial(np.polyval, p=[float(params[symsparam[0][_]]) for _ in range(4)]))
-#         return func_list
+class TrajQuinticContiguousTS(TrajCubicContiguousTS):
+    # Quintic trajectory
+    def __init__(self, num_dofs=3, frequency=50):
+        super().__init__(num_dofs=num_dofs, frequency=frequency)
+
+    def _get_traj_func(self, init_theta, end_theta, init_t, end_t, v1=None, v2=None, a1=None, a2=None):
+        assert len(init_theta) == len(end_theta) == self.num_dofs and type(init_theta[0]) is int
+        func_list = []
+        t1 = init_t
+        t2 = end_t
+        v1 = iter([0 for _ in range(self.num_dofs)]) if v1 is None else iter(v1)
+        v2 = iter([0 for _ in range(self.num_dofs)]) if v2 is None else iter(v2)
+        a1 = iter([0 for _ in range(self.num_dofs)]) if a1 is None else iter(a1)
+        a2 = iter([0 for _ in range(self.num_dofs)]) if a2 is None else iter(a2)
+        for init, end in zip(init_theta, end_theta):
+            symsparam = [Symbol('p5'), Symbol('p4'), Symbol('p3'), Symbol('p2'), Symbol('p1'), Symbol('p0')]
+            params = solve([symsparam[0] * t1 ** 5 + symsparam[1] * t1 ** 4 + symsparam[2] * t1 ** 3 +
+                            symsparam[3] * t1 ** 2 + symsparam[4] * t1 + symsparam[5] - init,
+                            symsparam[0] * t2 ** 5 + symsparam[1] * t2 ** 4 + symsparam[2] * t2 ** 3 +
+                            symsparam[3] * t2 ** 2 + symsparam[4] * t2 + symsparam[5] - end,
+                            5 * symsparam[0] * t1 ** 4 + 4 * symsparam[1] * t1 ** 3 + 3 * symsparam[2] * t1 ** 2 +
+                            2 * symsparam[3] * t1 + symsparam[4] - v1.__next__(),
+                            5 * symsparam[0] * t2 ** 4 + 4 * symsparam[1] * t2 ** 3 + 3 * symsparam[2] * t2 ** 2 +
+                            2 * symsparam[3] * t2 + symsparam[4] - v2.__next__(),
+                            20 * symsparam[0] * t1 ** 3 + 12 * symsparam[1] * t1 ** 2 + 6 * symsparam[2] * t1 + 2 * symsparam[3] - a1.__next__(),
+                            20 * symsparam[0] * t2 ** 3 + 12 * symsparam[1] * t2 ** 2 + 6 * symsparam[2] * t2 + 2 * symsparam[3] - a2.__next__()],
+                           symsparam)
+            func_list.append(partial(np.polyval, p=[float(params[symsparam[_]]) for _ in range(len(symsparam))]))
+        return func_list

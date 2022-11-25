@@ -58,7 +58,7 @@ class Trajectory(object):
             init_theta = thetalist[num]
             end_theta = thetalist[num + 1]
             func_list = self._get_traj_func(init_theta, end_theta, timelist[num], timelist[num + 1])
-            ticks_list = np.arange(0.0, timelist[num + 1] - timelist[num], 1 / self.frequency)
+            ticks_list = np.arange(timelist[num], timelist[num + 1], 1 / self.frequency)
             for t in ticks_list:
                 angles = self._get_values(t, func_list)
                 for i in range(self.num_dofs):
@@ -82,31 +82,48 @@ class TrajLinearTS(Trajectory):
         self.k = []
         self.b = []
         for init, end in zip(init_theta, end_theta):
-            self.k.append((end - init) / (end_t - init_t))
-            self.b.append(init)
+            # self.k.append((end - init) / (end_t - init_t))
+            # self.b.append(init)
+            k = Symbol('k')
+            b = Symbol('b')
+            param = solve([k * init_t + b - init,
+                           k * end_t + b - end], [k, b])
+            self.k.append(float(param[k]))
+            self.b.append(float(param[b]))
             func_list.append(lambda x, i: self.k[i] * x + self.b[i])
         return func_list
 
 
-# class TrajCubicNonContiguousTS(Trajectory):
-#     # Cubic trajectory
-#     def __init__(self, num_dofs=3, frequency=50):
-#         super().__init__(num_dofs=num_dofs, frequency=frequency)
-#
-#     def _get_traj_func(self, init_theta, end_theta, init_t, end_t):
-#         assert len(init_theta) == len(end_theta) == self.num_dofs
-#         func_list = []
-#         if type(init_theta[0]) is int:
-#             symsparam = [[Symbol('p%d3' % i), Symbol('p%d2' % i), Symbol('p%d1' % i), Symbol('p%d0' % i)] for i in [0]]
-#         else:
-#             raise TypeError()
-#
-#         for init, end in zip(init_theta, end_theta):
-#             solve([])
-#             func_list.append()
-#         return func_list
-#
-#
+class TrajCubicNonContiguousTS(Trajectory):
+    # Cubic trajectory
+    def __init__(self, num_dofs=3, frequency=50):
+        super().__init__(num_dofs=num_dofs, frequency=frequency)
+
+    def _get_traj_func(self, init_theta, end_theta, init_t, end_t):
+        assert len(init_theta) == len(end_theta) == self.num_dofs and type(init_theta[0]) is int
+        func_list = []
+        t1 = init_t
+        t2 = end_t
+        v1 = v2 = 0
+        for init, end in zip(init_theta, end_theta):
+            symsparam = [[Symbol('p3'), Symbol('p2'), Symbol('p1'), Symbol('p0')]]
+            params = solve([symsparam[0][0] * t1 ** 3 + symsparam[0][1] * t1 ** 2 + symsparam[0][2] * t1 + symsparam[0][3] - init,
+                            symsparam[0][0] * t2 ** 3 + symsparam[0][1] * t2 ** 2 + symsparam[0][2] * t2 + symsparam[0][3] - end,
+                            3 * symsparam[0][0] * t1 ** 2 + 2 * symsparam[0][1] * t1 + symsparam[0][2] - v1,
+                            3 * symsparam[0][0] * t2 ** 2 + 2 * symsparam[0][1] * t2 + symsparam[0][2] - v2],
+                           symsparam[0])
+            func_list.append(partial(np.polyval, p=[float(params[symsparam[0][_]]) for _ in range(4)]))
+        return func_list
+
+    def _get_values(self, t, func):
+        def __dof_limit(i, x):
+            if x < self.dof_min[i] or x > self.dof_max[i]:
+                raise Exception("out of range!")
+            else:
+                return x
+
+        return [__dof_limit(i, f(x=t)) for i, f in enumerate(func)]
+
 # class TrajCubicContiguousTS(Trajectory):
 #     # Cubic trajectory
 #     def __init__(self, num_dofs=3, frequency=50):

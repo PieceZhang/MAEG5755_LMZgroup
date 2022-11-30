@@ -7,6 +7,11 @@ import matplotlib.pyplot as plt
 
 class Trajectory(object):
     def __init__(self, num_dofs=3, frequency=50):
+        """
+        Basic trajectory class
+        :param num_dofs: number of DoFs (q, task space)
+        :param frequency: simulation freq
+        """
         self.num_dofs = num_dofs
         if num_dofs == 3:
             self.dof_min = [-10, -10, -10]  # TODO
@@ -79,7 +84,9 @@ class Trajectory(object):
 
 
 class TrajLinearTS(Trajectory):
-    # Linear trajectory
+    """
+    Linear trajectory
+    """
     def __init__(self, num_dofs=3, frequency=50):
         super().__init__(num_dofs=num_dofs, frequency=frequency)
 
@@ -100,7 +107,9 @@ class TrajLinearTS(Trajectory):
 
 
 class TrajCubicNonContiguousTS(Trajectory):
-    # Cubic trajectory
+    """
+    Cubic trajectory
+    """
     def __init__(self, num_dofs=3, frequency=50):
         super().__init__(num_dofs=num_dofs, frequency=frequency)
 
@@ -132,7 +141,9 @@ class TrajCubicNonContiguousTS(Trajectory):
 
 
 class TrajCubicContiguousTS(TrajCubicNonContiguousTS):
-    # Cubic trajectory
+    """
+    Cubic trajectory
+    """
     def __init__(self, num_dofs=3, frequency=50):
         super().__init__(num_dofs=num_dofs, frequency=frequency)
 
@@ -177,7 +188,9 @@ class TrajCubicContiguousTS(TrajCubicNonContiguousTS):
 
 
 class TrajQuinticContiguousTS(TrajCubicContiguousTS):
-    # Quintic trajectory
+    """
+    Quintic trajectory
+    """
     def __init__(self, num_dofs=3, frequency=50):
         super().__init__(num_dofs=num_dofs, frequency=frequency)
 

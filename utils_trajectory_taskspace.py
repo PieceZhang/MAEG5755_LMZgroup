@@ -5,17 +5,18 @@ from sympy import Symbol, solve
 import matplotlib.pyplot as plt
 
 
-class Trajectory(object):
-    def __init__(self, num_dofs=3, frequency=50):
+class _Trajectory(object):
+    def __init__(self, IKsolver=None, num_dofs=3, frequency=50):
         """
         Basic trajectory class
         :param num_dofs: number of DoFs (q, task space)
         :param frequency: simulation freq
         """
+        self.IKsolver = IKsolver
         self.num_dofs = num_dofs
         if num_dofs == 3:
-            self.dof_min = [-10, -10, -10]  # TODO
-            self.dof_max = [10, 10, 10]
+            self.dof_min = [-50, -50, -50]  # TODO
+            self.dof_max = [50, 50, 50]
         else:
             raise ValueError("[ERROR] Undefined num_dofs.")
         self.frequency = frequency  # server update frequency
@@ -76,6 +77,9 @@ class Trajectory(object):
                 plt.plot(np.arange(0, len(value_list[i]), 1), value_list[i])
             plt.show()
 
+        if self.IKsolver is not None:
+            value_list = self.IKsolver(value_list)
+
         for t in firelist:
             for i in range(self.num_dofs):
                 value_list[i].insert(int(t * self.frequency), 'fire')
@@ -83,13 +87,10 @@ class Trajectory(object):
         return value_list
 
 
-class TrajLinearTS(Trajectory):
+class TrajLinearTS(_Trajectory):
     """
     Linear trajectory
     """
-    def __init__(self, num_dofs=3, frequency=50):
-        super().__init__(num_dofs=num_dofs, frequency=frequency)
-
     def _get_traj_func(self, init_theta, end_theta, init_t, end_t):
         assert len(init_theta) == len(end_theta) == self.num_dofs
         func_list = []
@@ -106,13 +107,10 @@ class TrajLinearTS(Trajectory):
         return func_list
 
 
-class TrajCubicNonContiguousTS(Trajectory):
+class TrajCubicNonContiguousTS(_Trajectory):
     """
     Cubic trajectory
     """
-    def __init__(self, num_dofs=3, frequency=50):
-        super().__init__(num_dofs=num_dofs, frequency=frequency)
-
     def _get_traj_func(self, init_theta, end_theta, init_t, end_t, v1=None, v2=None):
         assert len(init_theta) == len(end_theta) == self.num_dofs and type(init_theta[0]) is int
         func_list = []
@@ -144,9 +142,6 @@ class TrajCubicContiguousTS(TrajCubicNonContiguousTS):
     """
     Cubic trajectory
     """
-    def __init__(self, num_dofs=3, frequency=50):
-        super().__init__(num_dofs=num_dofs, frequency=frequency)
-
     def get_whole_traj(self, thetalist: list, timelist: list, firelist=None, visual=False):
         assert len(thetalist) == len(timelist)
         assert firelist is None or max(firelist) <= max(timelist)
@@ -180,6 +175,9 @@ class TrajCubicContiguousTS(TrajCubicNonContiguousTS):
                 plt.plot(np.arange(0, len(value_list[i]), 1), value_list[i])
             plt.show()
 
+        if self.IKsolver is not None:
+            value_list = self.IKsolver(value_list)
+
         for t in firelist:
             for i in range(self.num_dofs):
                 value_list[i].insert(int(t * self.frequency), 'fire')
@@ -191,9 +189,6 @@ class TrajQuinticContiguousTS(TrajCubicContiguousTS):
     """
     Quintic trajectory
     """
-    def __init__(self, num_dofs=3, frequency=50):
-        super().__init__(num_dofs=num_dofs, frequency=frequency)
-
     def _get_traj_func(self, init_theta, end_theta, init_t, end_t, v1=None, v2=None, a1=None, a2=None):
         assert len(init_theta) == len(end_theta) == self.num_dofs and type(init_theta[0]) is int
         func_list = []
@@ -223,10 +218,10 @@ class TrajQuinticContiguousTS(TrajCubicContiguousTS):
 """
 # Define a trajectory generator on your own
 
-class TrajDIY(Trajectory):
+class TrajDIY(_Trajectory):
 
-    def __init__(self, num_dofs=3, frequency=50):
-        super().__init__(num_dofs=num_dofs, frequency=frequency)
+    def __init__(self, IKsolver=None, num_dofs=3, frequency=50):
+        super().__init__(IKsolver=None, num_dofs=num_dofs, frequency=frequency)
 
     def _get_traj_func(self, init_theta, end_theta, init_t, end_t):
         assert len(init_theta) == len(end_theta) == self.num_dofs

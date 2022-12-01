@@ -5,29 +5,65 @@ from sympy import Symbol, solve
 import matplotlib.pyplot as plt
 
 
-class IKSolver(object):
-    def __init__(self, num_dofs=3):
+class _IKSolver(object):
+    def __init__(self):
         """
         Basic IK solver class
-        :param num_dofs: number of DoFs (q, task space)
         """
-        self.num_dofs = num_dofs
+        pass
+
+
+class _IKSolverCUTER(_IKSolver):
+    def __init__(self):
+        super().__init__()
 
     def __call__(self, taskspace: list):
         raise NotImplementedError
 
 
-class IKSolverAnalytical(IKSolver):
-    def __init__(self, num_dofs=3):
-        super().__init__(num_dofs=num_dofs)
+class IKSolverCUTER3DoFAna(_IKSolverCUTER):
+    """
+    Analytical IK
+    """
+
+    def __init__(self):
+        super().__init__()
 
     def __call__(self, taskspace: list):
         pass
 
 
-class IKSolverNumerical(IKSolver):
-    def __init__(self, num_dofs=3):
-        super().__init__(num_dofs=num_dofs)
+class IKSolverCUTER3DoFNum(_IKSolverCUTER):
+    """
+    Numerical IK
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, taskspace: list):
+        pass
+
+
+class IKSolverCUTER6DoFAna(_IKSolverCUTER):
+    """
+    Analytical IK
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, taskspace: list):
+        pass
+
+
+class IKSolverCUTER6DoFNum(_IKSolverCUTER):
+    """
+    Numerical IK
+    """
+
+    def __init__(self):
+        super().__init__()
 
     def __call__(self, taskspace: list):
         pass

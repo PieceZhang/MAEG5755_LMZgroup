@@ -218,3 +218,18 @@ class TrajQuinticContiguousTS(TrajCubicContiguousTS):
                            symsparam)
             func_list.append(partial(np.polyval, p=[float(params[symsparam[_]]) for _ in range(len(symsparam))]))
         return func_list
+
+
+"""
+# Define a trajectory generator on your own
+
+class TrajDIY(Trajectory):
+
+    def __init__(self, num_dofs=3, frequency=50):
+        super().__init__(num_dofs=num_dofs, frequency=frequency)
+
+    def _get_traj_func(self, init_theta, end_theta, init_t, end_t):
+        assert len(init_theta) == len(end_theta) == self.num_dofs
+        ...
+
+"""

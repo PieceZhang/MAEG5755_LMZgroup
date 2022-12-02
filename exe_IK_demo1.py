@@ -5,7 +5,7 @@ if __name__ == '__main__':
     # (-23, 30, 0) -> (-2.726, 3.528, -15.606)
 
     trajgen = traj.TrajLinearTS(IK.IKSolverCUTER3DoFAna())
-    whole_traj = trajgen.get_whole_traj([[-23, 30, 0], [-2.726, 3.528, -15.606], [-23, 30, 0]], [0, 2, 4], [2, 4])
+    whole_traj = trajgen.get_whole_traj([[-4, 3, -32], [-25, 20, -10], [-4, 3, -32]], [0, 1, 2], [1, 2])
 
     return_str = 'angle;'
     for trajectory in whole_traj:

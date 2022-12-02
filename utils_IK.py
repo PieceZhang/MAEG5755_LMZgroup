@@ -26,11 +26,15 @@ class _IKSolverCUTER(_IKSolver):
         :return: angle
         """
         rad = np.array(list(map(lambda x: (x % (2 * np.pi)) / np.pi * 180, rad[0])))[None, :]  # x % (2*np.pi) ?
-        # for i in range(rad.shape[1]):
-        #     if rad[0, i] > self.theta_max[i]:
-        #         rad[0, i] -= 360
-        #         if rad[0, i] < self.theta_min[i]:
-        #             print("[INFO] Warning.")
+        for i in range(rad.shape[1]):
+            if rad[0, i] > self.theta_max[i]:
+                rad[0, i] -= 360
+                if rad[0, i] < self.theta_min[i]:
+                    print("[INFO] Warning.")
+            elif rad[0, i] < self.theta_min[i]:
+                rad[0, i] += 360
+                if rad[0, i] > self.theta_max[i]:
+                    print("[INFO] Warning.")
         return rad
 
     def __call__(self, taskspace: list):
@@ -48,12 +52,12 @@ class IKSolverCUTER3DoFAna(_IKSolverCUTER):
     def __call__(self, taskspace: list):
         taskspace = np.array(taskspace).transpose()
         roots = np.ndarray((0, 3))
-        rootlast = [np.pi * 0 / 180, np.pi * 8 / 180, np.pi * (-40) / 180]
+        rootlast = [np.pi * 8 / 180, np.pi * (-40) / 180]
         for xyz in taskspace:
             x = xyz[0]
             z = xyz[1]
             y = xyz[2]  # exchange y and z to match the coor in the simulator
-            theta1 = Symbol('theta1')
+            theta1 = atan(y / x)
             theta2 = Symbol('theta2')
             theta3 = Symbol('theta3')
             root = nsolve([(cos(theta1) * (1963 * cos(theta2 - 5361580512790693 / 36028797018963968) +
@@ -62,9 +66,9 @@ class IKSolverCUTER3DoFAna(_IKSolverCUTER):
                                            2020 * cos(theta2 + theta3))) / 100 - y,
                            (1963 * sin(theta2 - 5361580512790693 / 36028797018963968)) / 100 +
                            (101 * sin(theta2 + theta3)) / 5 + 509 / 50 - z],
-                          [theta1, theta2, theta3], rootlast)
-            rootlast = [root[0], root[1], root[2]]
-            roots = np.concatenate([roots, self.postprocessing(np.array([rootlast], dtype=np.float))])
+                          [theta2, theta3], rootlast)
+            rootlast = [root[0], root[1]]
+            roots = np.concatenate([roots, self.postprocessing(np.array([[theta1, root[0], root[1]]], dtype=np.float))])
         return roots.transpose().tolist()
 
 

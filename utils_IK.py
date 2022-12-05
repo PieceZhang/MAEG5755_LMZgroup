@@ -41,7 +41,7 @@ class _IKSolverCUTER3DoF(_IKSolverCUTER):
         :return: angle
         """
         deg = list(map(lambda x: rad2deg(x), rad))
-        # deg[1] = -deg[1] + 240
+        deg[1] = -deg[1] + 240  # theta2 offset
         constrain = [[[self.theta_min[0] < deg[0][0, 0] < self.theta_max[0],
                        self.theta_min[0] < deg[0][0, 1] < self.theta_max[0]],
                       [self.theta_min[0] < deg[0][1, 0] < self.theta_max[0],
@@ -74,7 +74,6 @@ class _IKSolverCUTER3DoF(_IKSolverCUTER):
                 break
         if not constrain[2][0][theta3] or not ('theta2' in locals().keys()) or not ('theta1' in locals().keys()):
             raise ValueError('[IKSolver] Location cannot reach!')
-
         return np.array([[deg[0][theta3, theta1], deg[1][theta3, theta2], deg[2][theta3]]], dtype=float)
 
     def __call__(self, taskspace: list):
@@ -111,9 +110,11 @@ class IKSolverCUTER3DoFAna(_IKSolverCUTER3DoF):
             theta2 = np.array([[asi[0] - alpha[0], pi - (asi[0] - alpha[0])],
                                [asi[1] - alpha[1], pi - (asi[1] - alpha[1])]])
             # solving for theta1
-            sin1 = -x / (l2 * cos(theta2) + l3 * cos(theta2 + theta3))
-            cos1 = y / (l2 * cos(theta2) + l3 * cos(theta2 + theta3))
-            theta1 = arctan2(sin1, cos1)
+            sin1_0 = -x / (l2 * cos(theta2[0]) + l3 * cos(theta2[0] + theta3[0]))
+            cos1_0 = y / (l2 * cos(theta2[0]) + l3 * cos(theta2[0] + theta3[0]))
+            sin1_1 = -x / (l2 * cos(theta2[1]) + l3 * cos(theta2[1] + theta3[1]))
+            cos1_1 = y / (l2 * cos(theta2[1]) + l3 * cos(theta2[1] + theta3[1]))
+            theta1 = np.array([arctan2(sin1_1, cos1_1), arctan2(sin1_0, cos1_0)])  # 1, 0 ?
             # cat
             theta3 -= 0.1488
             theta2 += 0.1488

@@ -15,8 +15,8 @@ class _Trajectory(object):
         self.IKsolver = IKsolver
         self.num_dofs = num_dofs
         if num_dofs == 3:
-            self.dof_min = [-50, -50, -50]  # TODO
-            self.dof_max = [50, 50, 50]
+            self.dof_min = [-60, -60, -60]  # TBD
+            self.dof_max = [60, 60, 60]
         else:
             raise ValueError("[ERROR] Undefined num_dofs.")
         self.frequency = frequency  # server update frequency

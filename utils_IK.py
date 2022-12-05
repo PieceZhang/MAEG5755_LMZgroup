@@ -27,12 +27,14 @@ class _IKSolverCUTER(object):
 class _IKSolverCUTER3DoF(_IKSolverCUTER):
     def __init__(self):
         super().__init__()
-        self.theta_min = [-90, -15, -140]
-        self.theta_max = [90, 180, 45]
+        res = 1
+        self.theta_min = [-90 - res, -15 - res, -140 - res]
+        self.theta_max = [90 + res, 180 + res, 45 + res]
         self.l1 = 10.18
         self.l2 = 19.41
         self.l3 = 2.91
-        self.l4 = 20.2
+        # self.l4 = 20.2
+        self.l4 = 25.22  # if use grabber, then set l4 to be longer
 
     def postprocessing(self, rad):
         """
@@ -41,7 +43,10 @@ class _IKSolverCUTER3DoF(_IKSolverCUTER):
         :return: angle
         """
         deg = list(map(lambda x: rad2deg(x), rad))
-        deg[1] = -deg[1] + 240  # theta2 offset
+        deg[1][0, 1] = -deg[1][0, 1] + 270  # theta2 offset
+        deg[1][1, 1] = -deg[1][1, 1] + 270  # theta2 offset
+        deg[1][0, 0] = deg[1][0, 0] + 270  # theta2 offset
+        deg[1][1, 0] = deg[1][1, 0] + 270  # theta2 offset
         constrain = [[[self.theta_min[0] < deg[0][0, 0] < self.theta_max[0],
                        self.theta_min[0] < deg[0][0, 1] < self.theta_max[0]],
                       [self.theta_min[0] < deg[0][1, 0] < self.theta_max[0],
@@ -57,23 +62,17 @@ class _IKSolverCUTER3DoF(_IKSolverCUTER):
             if not constrain[2][0][theta3]:
                 continue
             # theta2
-            try:
-                theta2 = constrain[1][theta3].index(True)
-            except ValueError:
-                continue
-            # theta1
-            if not constrain[0][theta3][theta2]:
-                continue
-                # if not constrain[0][theta3][int(not theta2)]:
-                #     continue
-                # else:
-                #     theta1 = int(not theta2)
-                #     break
-            else:
-                theta1 = theta2
-                break
-        if not constrain[2][0][theta3] or not ('theta2' in locals().keys()) or not ('theta1' in locals().keys()):
+            for theta2 in range(2):
+                # theta1
+                if not constrain[1][theta3][theta2]:
+                    continue
+                else:
+                    theta1 = theta2
+                    break
+        if not constrain[2][0][theta3] or not constrain[1][theta3][theta2] or not ('theta1' in locals().keys()):
             raise ValueError('[IKSolver] Location cannot reach!')
+        elif False in [constrain[2][0][theta3], constrain[1][theta3][theta2], constrain[0][theta3][theta1]]:
+            raise ValueError('[IKSolver] Runtime error!')
         return np.array([[deg[0][theta3, theta1], deg[1][theta3, theta2], deg[2][theta3]]], dtype=float)
 
     def __call__(self, taskspace: list):
@@ -116,8 +115,8 @@ class IKSolverCUTER3DoFAna(_IKSolverCUTER3DoF):
             cos1_1 = y / (l2 * cos(theta2[1]) + l3 * cos(theta2[1] + theta3[1]))
             theta1 = np.array([arctan2(sin1_1, cos1_1), arctan2(sin1_0, cos1_0)])  # 1, 0 ?
             # cat
-            theta3 -= 0.1488
-            theta2 += 0.1488
+            theta3 -= 0.1488 * 2
+            theta2 += 0.1488 * 2
             # theta2 += np.array([[0.1488, -0.1488], [0.1488, -0.1488]])
             qt = np.concatenate([qt, self.postprocessing([theta1, theta2, theta3])])
         return qt.transpose().tolist()

@@ -1,11 +1,22 @@
 # Copyright (c) Zhang Yuelin. All Rights Reserved.
+import math
+
 import numpy as np
 from functools import partial
-from sympy import Symbol, solve, nsolve, sin, cos, acos, atan, pi
+from numpy import sin, cos, arccos, arcsin, arctan2, pi, sqrt
+# from sympy import Symbol, solve, nsolve, sin, cos, acos, atan, pi
 import matplotlib.pyplot as plt
 
 
-class _IKSolver(object):
+def rad2deg(x):
+    return x / pi * 180
+
+
+def deg2rad(x):
+    return x / 180 * pi
+
+
+class _IKSolverCUTER(object):
     def __init__(self):
         """
         Basic IK solver class
@@ -13,11 +24,15 @@ class _IKSolver(object):
         pass
 
 
-class _IKSolverCUTER(_IKSolver):
+class _IKSolverCUTER3DoF(_IKSolverCUTER):
     def __init__(self):
         super().__init__()
-        self.theta_min = [-90, 0, -140, -180, -110, -180]
-        self.theta_max = [90, 180, 45, 180, 110, 180]
+        self.theta_min = [-90, -15, -140]
+        self.theta_max = [90, 180, 45]
+        self.l1 = 10.18
+        self.l2 = 19.41
+        self.l3 = 2.91
+        self.l4 = 20.2
 
     def postprocessing(self, rad):
         """
@@ -25,23 +40,48 @@ class _IKSolverCUTER(_IKSolver):
         :param rad: rad
         :return: angle
         """
-        rad = np.array(list(map(lambda x: (x % (2 * np.pi)) / np.pi * 180, rad[0])))[None, :]  # x % (2*np.pi) ?
-        for i in range(rad.shape[1]):
-            if rad[0, i] > self.theta_max[i]:
-                rad[0, i] -= 360
-                if rad[0, i] < self.theta_min[i]:
-                    print("[INFO] Warning.")
-            elif rad[0, i] < self.theta_min[i]:
-                rad[0, i] += 360
-                if rad[0, i] > self.theta_max[i]:
-                    print("[INFO] Warning.")
-        return rad
+        deg = list(map(lambda x: rad2deg(x), rad))
+        # deg[1] = -deg[1] + 240
+        constrain = [[[self.theta_min[0] < deg[0][0, 0] < self.theta_max[0],
+                       self.theta_min[0] < deg[0][0, 1] < self.theta_max[0]],
+                      [self.theta_min[0] < deg[0][1, 0] < self.theta_max[0],
+                       self.theta_min[0] < deg[0][1, 1] < self.theta_max[0]]],
+                     [[self.theta_min[1] < deg[1][0, 0] < self.theta_max[1],
+                       self.theta_min[1] < deg[1][0, 1] < self.theta_max[1]],
+                      [self.theta_min[1] < deg[1][1, 0] < self.theta_max[1],
+                       self.theta_min[1] < deg[1][1, 1] < self.theta_max[1]]],
+                     [[self.theta_min[2] < deg[2][0] < self.theta_max[2],
+                       self.theta_min[2] < deg[2][1] < self.theta_max[2]]]]
+        for theta3 in range(2):
+            # theta3
+            if not constrain[2][0][theta3]:
+                continue
+            # theta2
+            try:
+                theta2 = constrain[1][theta3].index(True)
+            except ValueError:
+                continue
+            # theta1
+            if not constrain[0][theta3][theta2]:
+                continue
+                # if not constrain[0][theta3][int(not theta2)]:
+                #     continue
+                # else:
+                #     theta1 = int(not theta2)
+                #     break
+            else:
+                theta1 = theta2
+                break
+        if not constrain[2][0][theta3] or not ('theta2' in locals().keys()) or not ('theta1' in locals().keys()):
+            raise ValueError('[IKSolver] Location cannot reach!')
+
+        return np.array([[deg[0][theta3, theta1], deg[1][theta3, theta2], deg[2][theta3]]], dtype=float)
 
     def __call__(self, taskspace: list):
         raise NotImplementedError
 
 
-class IKSolverCUTER3DoFAna(_IKSolverCUTER):
+class IKSolverCUTER3DoFAna(_IKSolverCUTER3DoF):
     """
     Analytical IK
     """
@@ -50,29 +90,39 @@ class IKSolverCUTER3DoFAna(_IKSolverCUTER):
         super().__init__()
 
     def __call__(self, taskspace: list):
+        # redefine variables name
+        l1 = self.l1
+        l2 = sqrt(self.l2 ** 2 + self.l3 ** 2)
+        l3 = self.l4
         taskspace = np.array(taskspace).transpose()
-        roots = np.ndarray((0, 3))
-        rootlast = [np.pi * 8 / 180, np.pi * (-40) / 180]
+        qt = np.ndarray((0, 3))
         for xyz in taskspace:
             x = xyz[0]
             z = xyz[1]
             y = xyz[2]  # exchange y and z to match the coor in the simulator
-            theta1 = atan(y / x)
-            theta2 = Symbol('theta2')
-            theta3 = Symbol('theta3')
-            root = nsolve([(cos(theta1) * (1963 * cos(theta2 - 5361580512790693 / 36028797018963968) +
-                                           2020 * cos(theta2 + theta3))) / 100 - x,
-                           (sin(theta1) * (1963 * cos(theta2 - 5361580512790693 / 36028797018963968) +
-                                           2020 * cos(theta2 + theta3))) / 100 - y,
-                           (1963 * sin(theta2 - 5361580512790693 / 36028797018963968)) / 100 +
-                           (101 * sin(theta2 + theta3)) / 5 + 509 / 50 - z],
-                          [theta2, theta3], rootlast)
-            rootlast = [root[0], root[1]]
-            roots = np.concatenate([roots, self.postprocessing(np.array([[theta1, root[0], root[1]]], dtype=np.float))])
-        return roots.transpose().tolist()
+            # solving for theta3
+            theta3 = arccos((x ** 2 + y ** 2 + (z - l1) ** 2 - l2 ** 2 - l3 ** 2) / (2 * l2 * l3))
+            theta3 = np.array([theta3, -theta3])
+            # solving for theta2
+            a = l2 + l3 * cos(theta3)
+            b = l3 * cos(theta3)
+            alpha = arctan2(b / sqrt(a ** 2 + b ** 2), a / sqrt(a ** 2 + b ** 2))
+            asi = arcsin((z - l1) / sqrt(a ** 2 + b ** 2))
+            theta2 = np.array([[asi[0] - alpha[0], pi - (asi[0] - alpha[0])],
+                               [asi[1] - alpha[1], pi - (asi[1] - alpha[1])]])
+            # solving for theta1
+            sin1 = -x / (l2 * cos(theta2) + l3 * cos(theta2 + theta3))
+            cos1 = y / (l2 * cos(theta2) + l3 * cos(theta2 + theta3))
+            theta1 = arctan2(sin1, cos1)
+            # cat
+            theta3 -= 0.1488
+            theta2 += 0.1488
+            # theta2 += np.array([[0.1488, -0.1488], [0.1488, -0.1488]])
+            qt = np.concatenate([qt, self.postprocessing([theta1, theta2, theta3])])
+        return qt.transpose().tolist()
 
 
-class IKSolverCUTER3DoFNum(_IKSolverCUTER):
+class IKSolverCUTER3DoFNum(_IKSolverCUTER3DoF):
     """
     Numerical IK
     """
@@ -84,7 +134,25 @@ class IKSolverCUTER3DoFNum(_IKSolverCUTER):
         pass
 
 
-class IKSolverCUTER6DoFAna(_IKSolverCUTER):
+class _IKSolverCUTER6DoF(_IKSolverCUTER):
+    def __init__(self):
+        super().__init__()
+        self.theta_min = [-90, 0, -140, -180, -110, -180]
+        self.theta_max = [90, 180, 45, 180, 110, 180]
+        self.l1 = 10.18
+        self.l2 = 19.41
+        self.l3 = 2.91
+        self.l4 = 25.22
+        self.l5 = 3.00
+
+    def postprocessing(self, rad):
+        pass
+
+    def __call__(self, taskspace: list):
+        raise NotImplementedError
+
+
+class IKSolverCUTER6DoFAna(_IKSolverCUTER6DoF):
     """
     Analytical IK
     """
@@ -96,7 +164,7 @@ class IKSolverCUTER6DoFAna(_IKSolverCUTER):
         pass
 
 
-class IKSolverCUTER6DoFNum(_IKSolverCUTER):
+class IKSolverCUTER6DoFNum(_IKSolverCUTER6DoF):
     """
     Numerical IK
     """

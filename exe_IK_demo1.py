@@ -2,10 +2,10 @@ import utils_IK as IK
 import utils_trajectory_taskspace as traj
 
 if __name__ == '__main__':
-    # (-23, 30, 0) -> (-2.726, 3.528, -15.606)
 
     trajgen = traj.TrajLinearTS(IK.IKSolverCUTER3DoFAna())
-    whole_traj = trajgen.get_whole_traj([[-4, 3, -32], [-25, 20, -10], [-4, 3, -32]], [0, 1, 2], [1, 2])
+    whole_traj = trajgen.get_whole_traj([[5, 8, -35], [-25, 20, -10], [5, 8, -35]], [0, 1, 2], [0, 1])
+    # whole_traj = trajgen.get_whole_traj([[-4, 3, -32], [-25, 20, -10], [-4, 3, -32]], [0, 1, 2], [1, 2])  # -10 30 80
 
     return_str = 'angle;'
     for trajectory in whole_traj:

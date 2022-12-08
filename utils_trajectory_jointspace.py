@@ -4,6 +4,11 @@ import numpy as np
 
 class Trajectory(object):
     def __init__(self, num_joints=3, frequency=50):
+        """
+        Basic trajectory class
+        :param num_joints: number of joints
+        :param frequency: simulation freq
+        """
         self.num_joints = num_joints
         if num_joints == 3:
             self.angle_min = [-90, -15, -180]

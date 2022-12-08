@@ -43,10 +43,11 @@ class _IKSolverCUTER3DoF(_IKSolverCUTER):
         :return: angle
         """
         deg = list(map(lambda x: rad2deg(x), rad))
-        deg[1][0, 1] = deg[1][0, 1] + 45  # theta2 offset
-        deg[1][1, 1] = deg[1][1, 1] + 45  # theta2 offset
-        deg[1][0, 0] = deg[1][0, 0] + 45  # theta2 offset
-        deg[1][1, 0] = deg[1][1, 0] + 45  # theta2 offset
+        deg[1][0, 1] = deg[1][0, 1] + 65  # theta2 offset
+        deg[1][1, 1] = deg[1][1, 1] + 65  # theta2 offset
+        deg[1][0, 0] = deg[1][0, 0] + 65  # theta2 offset
+        deg[1][1, 0] = deg[1][1, 0] + 65  # theta2 offset
+        deg[2] = deg[2] - 15  # theta3 offset
         constrain = [[[self.theta_min[0] < deg[0][0, 0] < self.theta_max[0],
                        self.theta_min[0] < deg[0][0, 1] < self.theta_max[0]],
                       [self.theta_min[0] < deg[0][1, 0] < self.theta_max[0],
@@ -57,6 +58,7 @@ class _IKSolverCUTER3DoF(_IKSolverCUTER):
                        self.theta_min[1] < deg[1][1, 1] < self.theta_max[1]]],
                      [[self.theta_min[2] < deg[2][0] < self.theta_max[2],
                        self.theta_min[2] < deg[2][1] < self.theta_max[2]]]]
+        select = []
         for theta3 in range(2):
             # theta3
             if not constrain[2][0][theta3]:
@@ -68,7 +70,10 @@ class _IKSolverCUTER3DoF(_IKSolverCUTER):
                     continue
                 else:
                     theta1 = theta2
+                    select.append([theta1, theta2, theta3])
                     break
+        # if len(select) == 2:
+        #     theta1, theta2, theta3 = select[0]  # TODO to choose 1 or 0 if multi solutions exist
         if not constrain[2][0][theta3] or not constrain[1][theta3][theta2] or not ('theta1' in locals().keys()):
             raise ValueError('[IKSolver] Location cannot reach!')
         elif False in [constrain[2][0][theta3], constrain[1][theta3][theta2], constrain[0][theta3][theta1]]:
@@ -99,13 +104,14 @@ class IKSolverCUTER3DoFAna(_IKSolverCUTER3DoF):
             z = xyz[1]
             y = -xyz[2]  # exchange y and z to match the coor in the simulator
             # solving for theta3
-            theta3 = arccos((x ** 2 + y ** 2 + (z - l1) ** 2 - l2 ** 2 - l3 ** 2) / (2 * l2 * l3))
+            theta3 = arccos(max(-1, min(1, (x ** 2 + y ** 2 + (z - l1) ** 2 - l2 ** 2 - l3 ** 2) / (2 * l2 * l3))))
             theta3 = np.array([theta3, -theta3])
             # solving for theta2
             a = l2 + l3 * cos(theta3)
             b = l3 * cos(theta3)
             alpha = arctan2(b / sqrt(a ** 2 + b ** 2), a / sqrt(a ** 2 + b ** 2))
-            asi = arcsin((z - l1) / sqrt(a ** 2 + b ** 2))
+            asi = np.array([arcsin(max(-1, min(1, (z - l1) / sqrt(a[0] ** 2 + b[0] ** 2)))),
+                            arcsin(max(-1, min(1, (z - l1) / sqrt(a[1] ** 2 + b[1] ** 2))))])
             theta2 = np.array([[asi[0] - alpha[0], pi - (asi[0] - alpha[0])],
                                [asi[1] - alpha[1], pi - (asi[1] - alpha[1])]])
             # solving for theta1
@@ -113,7 +119,7 @@ class IKSolverCUTER3DoFAna(_IKSolverCUTER3DoF):
             cos1_0 = y / (l2 * cos(theta2[0]) + l3 * cos(theta2[0] + theta3[0]))
             sin1_1 = -x / (l2 * cos(theta2[1]) + l3 * cos(theta2[1] + theta3[1]))
             cos1_1 = y / (l2 * cos(theta2[1]) + l3 * cos(theta2[1] + theta3[1]))
-            theta1 = np.array([arctan2(sin1_0, cos1_0), arctan2(sin1_1, cos1_1)])  # TODO 1, 0 ?
+            theta1 = np.array([arctan2(sin1_0, cos1_0), arctan2(sin1_1, cos1_1)])
             # cat
             theta3 -= 0.1488
             theta2 += 0.1488

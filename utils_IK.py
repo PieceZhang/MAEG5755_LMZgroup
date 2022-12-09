@@ -57,6 +57,17 @@ class _IKSolverCUTER(object):
         # theta2 += np.array([[0.1488, -0.1488], [0.1488, -0.1488]])
         return theta1, theta2, theta3
 
+    def solve6dofana(self, x, y, z, alpha, beta, gamma):
+        theta1, theta2, theta3 = self.solve3dofana(x, y, z)
+        R03 = np.array([[-cos(theta2 + theta3) * sin(theta1), sin(theta2 + theta3) * sin(theta1), cos(theta1)],
+                        [cos(theta2 + theta3) * cos(theta1), -sin(theta2 + theta3) * cos(theta1), sin(theta1)],
+                        [sin(theta2 + theta3), cos(theta2 + theta3), 0]])
+        # TODO
+        theta4 = None
+        theta5 = None
+        theta6 = None
+        return theta1, theta2, theta3, theta4, theta5, theta6
+
 
 class _IKSolverCUTER3DoF(_IKSolverCUTER):
     def __init__(self):
@@ -164,7 +175,18 @@ class IKSolverCUTER6DoFAna(_IKSolverCUTER6DoF):
         super().__init__()
 
     def __call__(self, taskspace: list):
-        pass
+        taskspace = np.array(taskspace).transpose()
+        qt = np.ndarray((0, 6))
+        for ts in taskspace:
+            x = -ts[0]
+            z = ts[1]
+            y = -ts[2]  # exchange y and z to match the coor in the simulator
+            alpha = ts[3]
+            beta = ts[4]
+            gamma = ts[5]
+            theta1, theta2, theta3, theta4, theta5, theta6 = self.solve6dofana(x, y, z, alpha, beta, gamma)
+            qt = np.concatenate([qt, self.postprocessing([theta1, theta2, theta3, theta4, theta5, theta6])])
+        return qt.transpose().tolist()
 
 
 class IKSolverCUTER6DoFNum(_IKSolverCUTER6DoF):

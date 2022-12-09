@@ -27,9 +27,8 @@ class _IKSolverCUTER(object):
 class _IKSolverCUTER3DoF(_IKSolverCUTER):
     def __init__(self):
         super().__init__()
-        res = 1
-        self.theta_min = [-90 - res, -15 - res, -140 - res]
-        self.theta_max = [90 + res, 180 + res, 45 + res]
+        self.theta_min = [-90, -15, -140]
+        self.theta_max = [90, 180, 45]
         self.l1 = 10.18
         self.l2 = 19.41
         self.l3 = 2.91
@@ -68,7 +67,7 @@ class _IKSolverCUTER3DoF(_IKSolverCUTER):
                     select.append([theta1, theta2, theta3])
                     break
         # if len(select) == 2:
-        #     theta1, theta2, theta3 = select[0]  # TODO to choose 1 or 0 if multi solutions exist
+        #     theta1, theta2, theta3 = select[0]  # to choose 1 or 0 if multi solutions exist
         if not constrain[2][0][theta3] or not constrain[1][theta3][theta2] or not ('theta1' in locals().keys()):
             raise ValueError('[IKSolver] Location cannot reach!')
         elif False in [constrain[2][0][theta3], constrain[1][theta3][theta2], constrain[0][theta3][theta1]]:

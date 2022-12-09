@@ -43,11 +43,6 @@ class _IKSolverCUTER3DoF(_IKSolverCUTER):
         :return: angle
         """
         deg = list(map(lambda x: rad2deg(x), rad))
-        deg[1][0, 1] = deg[1][0, 1] + 65  # theta2 offset
-        deg[1][1, 1] = deg[1][1, 1] + 65  # theta2 offset
-        deg[1][0, 0] = deg[1][0, 0] + 65  # theta2 offset
-        deg[1][1, 0] = deg[1][1, 0] + 65  # theta2 offset
-        deg[2] = deg[2] - 15  # theta3 offset
         constrain = [[[self.theta_min[0] < deg[0][0, 0] < self.theta_max[0],
                        self.theta_min[0] < deg[0][0, 1] < self.theta_max[0]],
                       [self.theta_min[0] < deg[0][1, 0] < self.theta_max[0],
@@ -108,7 +103,7 @@ class IKSolverCUTER3DoFAna(_IKSolverCUTER3DoF):
             theta3 = np.array([theta3, -theta3])
             # solving for theta2
             a = l2 + l3 * cos(theta3)
-            b = l3 * cos(theta3)
+            b = l3 * sin(theta3)
             alpha = arctan2(b / sqrt(a ** 2 + b ** 2), a / sqrt(a ** 2 + b ** 2))
             asi = np.array([arcsin(max(-1, min(1, (z - l1) / sqrt(a[0] ** 2 + b[0] ** 2)))),
                             arcsin(max(-1, min(1, (z - l1) / sqrt(a[1] ** 2 + b[1] ** 2))))])

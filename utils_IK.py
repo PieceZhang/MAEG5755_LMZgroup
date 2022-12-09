@@ -1,11 +1,11 @@
 # Copyright (c) Zhang Yuelin. All Rights Reserved.
 import math
-
 import numpy as np
 from functools import partial
 from numpy import sin, cos, arccos, arcsin, arctan2, pi, sqrt
 # from sympy import Symbol, solve, nsolve, sin, cos, acos, atan, pi
 import matplotlib.pyplot as plt
+from utils_FK import CUTER_FK_3DOF, CUTER_FK_6DOF
 
 
 def rad2deg(x):
@@ -55,6 +55,8 @@ class _IKSolverCUTER(object):
         theta3 -= 0.1488
         theta2 += 0.1488
         # theta2 += np.array([[0.1488, -0.1488], [0.1488, -0.1488]])
+        # FK (for verification)
+        x_fk, y_fk, z_fk = CUTER_FK_3DOF(self, theta1, theta2, theta3)
         return theta1, theta2, theta3
 
     def solve6dofana(self, x, y, z, alpha, beta, gamma):

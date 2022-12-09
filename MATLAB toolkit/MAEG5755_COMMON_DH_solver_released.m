@@ -5,23 +5,42 @@
 % define params and DH table
 clear
 
-%%%%% HW1 problem 3 %%%%%
-disp('HW1 problem 3')
-syms H
+disp('CUTER')
+
+% notation 1
+% syms theta1
+% syms theta2
+% syms theta3
+% DH = [0 0 10.18 theta1;
+%       pi/2 0 0 theta2-0.1488;  % pi*8.5264/180=0.1488
+%       0 19.6269 0 theta3+0.1488;
+%       0 20.2 0 0]
+
+% notation 2
+% syms theta1
+% syms theta2
+% syms theta3
+% syms l1
+% syms l2
+% syms l3
+% syms l4
+% DH = [0 0 l1 pi/2+theta1;
+%       pi/2 0 0 theta2-0.1488;
+%       0 sqrt(l2^2+l3^2) 0 theta3+0.1488;
+%       0 l4 0 0]
+
+% notation 3
 syms theta1
-syms L1
 syms theta2
-syms d3
-syms theta4
-syms d5
-syms theta6
-syms L2
-DH = [0 0 H theta1;
-      pi/2 0 L1 pi/2+theta2;
-      -pi/2 0 d3 pi/2;
-      pi/2 0 0 -pi/2+theta4;
-      0 0 d5 0;
-      -pi/2 0 L1 theta6]  % DH table
+syms theta3
+syms l1
+syms l2
+syms l3
+syms beta  % beta=0.1488
+DH = [0 0 l1 pi/2+theta1;
+      pi/2 0 0 theta2-beta;
+      0 l2 0 theta3+beta;
+      0 l3 0 0]
 
 
 % calculate

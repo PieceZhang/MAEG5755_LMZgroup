@@ -21,17 +21,49 @@ class _IKSolverCUTER(object):
         """
         Basic IK solver class
         """
-        pass
+        self.theta_min = [-90, 0, -140, -180, -110, -180]
+        self.theta_max = [90, 180, 45, 180, 110, 180]
+        self.l1 = 10.18
+        self.l2 = 19.41
+        self.l3 = 2.91
+        self.l4 = 25.22
+        self.l5 = 3.00
+
+    def solve3dofana(self, x, y, z):
+        # redefine variables name
+        l1 = self.l1
+        l2 = sqrt(self.l2 ** 2 + self.l3 ** 2)
+        l3 = self.l4
+        # solving for theta3
+        theta3 = arccos(max(-1, min(1, (x ** 2 + y ** 2 + (z - l1) ** 2 - l2 ** 2 - l3 ** 2) / (2 * l2 * l3))))
+        theta3 = np.array([theta3, -theta3])
+        # solving for theta2
+        a = l2 + l3 * cos(theta3)
+        b = l3 * sin(theta3)
+        alpha = arctan2(b / sqrt(a ** 2 + b ** 2), a / sqrt(a ** 2 + b ** 2))
+        asi = np.array([arcsin(max(-1, min(1, (z - l1) / sqrt(a[0] ** 2 + b[0] ** 2)))),
+                        arcsin(max(-1, min(1, (z - l1) / sqrt(a[1] ** 2 + b[1] ** 2))))])
+        theta2 = np.array([[asi[0] - alpha[0], pi - (asi[0] - alpha[0])],
+                           [asi[1] - alpha[1], pi - (asi[1] - alpha[1])]])
+        # solving for theta1
+        sin1_0 = -x / (l2 * cos(theta2[0]) + l3 * cos(theta2[0] + theta3[0]))
+        cos1_0 = y / (l2 * cos(theta2[0]) + l3 * cos(theta2[0] + theta3[0]))
+        sin1_1 = -x / (l2 * cos(theta2[1]) + l3 * cos(theta2[1] + theta3[1]))
+        cos1_1 = y / (l2 * cos(theta2[1]) + l3 * cos(theta2[1] + theta3[1]))
+        theta1 = np.array([arctan2(sin1_0, cos1_0), arctan2(sin1_1, cos1_1)])
+        # cat
+        theta3 -= 0.1488
+        theta2 += 0.1488
+        # theta2 += np.array([[0.1488, -0.1488], [0.1488, -0.1488]])
+        return theta1, theta2, theta3
 
 
 class _IKSolverCUTER3DoF(_IKSolverCUTER):
     def __init__(self):
         super().__init__()
+        # some variables in basic class are overrided
         self.theta_min = [-90, -15, -140]
         self.theta_max = [90, 180, 45]
-        self.l1 = 10.18
-        self.l2 = 19.41
-        self.l3 = 2.91
         # self.l4 = 20.2
         self.l4 = 25.22  # if use grabber, then set l4 to be longer
 
@@ -87,37 +119,13 @@ class IKSolverCUTER3DoFAna(_IKSolverCUTER3DoF):
         super().__init__()
 
     def __call__(self, taskspace: list):
-        # redefine variables name
-        l1 = self.l1
-        l2 = sqrt(self.l2 ** 2 + self.l3 ** 2)
-        l3 = self.l4
         taskspace = np.array(taskspace).transpose()
         qt = np.ndarray((0, 3))
         for xyz in taskspace:
             x = -xyz[0]
             z = xyz[1]
             y = -xyz[2]  # exchange y and z to match the coor in the simulator
-            # solving for theta3
-            theta3 = arccos(max(-1, min(1, (x ** 2 + y ** 2 + (z - l1) ** 2 - l2 ** 2 - l3 ** 2) / (2 * l2 * l3))))
-            theta3 = np.array([theta3, -theta3])
-            # solving for theta2
-            a = l2 + l3 * cos(theta3)
-            b = l3 * sin(theta3)
-            alpha = arctan2(b / sqrt(a ** 2 + b ** 2), a / sqrt(a ** 2 + b ** 2))
-            asi = np.array([arcsin(max(-1, min(1, (z - l1) / sqrt(a[0] ** 2 + b[0] ** 2)))),
-                            arcsin(max(-1, min(1, (z - l1) / sqrt(a[1] ** 2 + b[1] ** 2))))])
-            theta2 = np.array([[asi[0] - alpha[0], pi - (asi[0] - alpha[0])],
-                               [asi[1] - alpha[1], pi - (asi[1] - alpha[1])]])
-            # solving for theta1
-            sin1_0 = -x / (l2 * cos(theta2[0]) + l3 * cos(theta2[0] + theta3[0]))
-            cos1_0 = y / (l2 * cos(theta2[0]) + l3 * cos(theta2[0] + theta3[0]))
-            sin1_1 = -x / (l2 * cos(theta2[1]) + l3 * cos(theta2[1] + theta3[1]))
-            cos1_1 = y / (l2 * cos(theta2[1]) + l3 * cos(theta2[1] + theta3[1]))
-            theta1 = np.array([arctan2(sin1_0, cos1_0), arctan2(sin1_1, cos1_1)])
-            # cat
-            theta3 -= 0.1488
-            theta2 += 0.1488
-            # theta2 += np.array([[0.1488, -0.1488], [0.1488, -0.1488]])
+            theta1, theta2, theta3 = self.solve3dofana(x, y, z)
             qt = np.concatenate([qt, self.postprocessing([theta1, theta2, theta3])])
         return qt.transpose().tolist()
 
@@ -139,11 +147,6 @@ class _IKSolverCUTER6DoF(_IKSolverCUTER):
         super().__init__()
         self.theta_min = [-90, 0, -140, -180, -110, -180]
         self.theta_max = [90, 180, 45, 180, 110, 180]
-        self.l1 = 10.18
-        self.l2 = 19.41
-        self.l3 = 2.91
-        self.l4 = 25.22
-        self.l5 = 3.00
 
     def postprocessing(self, rad):
         pass

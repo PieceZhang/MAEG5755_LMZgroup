@@ -56,8 +56,40 @@ class _IKSolverCUTER(object):
         theta2 += 0.1488
         # theta2 += np.array([[0.1488, -0.1488], [0.1488, -0.1488]])
         # FK (for verification)
-        x_fk, y_fk, z_fk = CUTER_FK_3DOF(self, theta1, theta2, theta3)
+        x_fk, y_fk, z_fk = CUTER_FK_3DOF(self, [theta1, theta2, theta3])
         return theta1, theta2, theta3
+
+    def solvenum(self, taskspace, J, FK):
+        taskspace = np.array(taskspace).transpose()
+        dxr = np.diff(taskspace.transpose()).transpose()  # dx reference
+        dxr = np.concatenate([dxr, dxr[-1, :][None, :]])
+        dt = 1  # time step 50Hz ??
+        qtlast = np.array([[0 for _ in range(taskspace.shape[1])]])
+        qt = np.ndarray((0, taskspace.shape[1]))  # qt
+        et = np.ndarray((0, taskspace.shape[1]))  # et
+        Kp = np.array([0.05, 0.05, 0.05])
+
+        def offset(_):
+            x = _.copy()
+            x[1] = x[1] + 0.1488
+            x[2] = x[2] - 0.1488
+            return x
+
+        for i, xyz in enumerate(taskspace):
+            xyz = np.array([-xyz[0], -xyz[2], xyz[1]])
+            dxc = dxr[i, :] + Kp * (xyz - FK(q=offset(qtlast[0])))  # dx control
+            qtlast = qtlast + dt * (np.linalg.inv(J(qtlast)) @ dxc)
+            # cat
+            qt = np.concatenate([qt, list(map(lambda x: rad2deg(offset(x)), qtlast))[0][None, :]])
+            # limit
+            qt[-1, 0] = max(self.theta_min[0], min(self.theta_max[0], qt[-1, 0]))
+            qt[-1, 1] = max(self.theta_min[1], min(self.theta_max[1], qt[-1, 1]))
+            qt[-1, 2] = max(self.theta_min[2], min(self.theta_max[2], qt[-1, 2]))
+            # for debug
+            et = np.concatenate([et, (xyz - FK(q=offset(qtlast[0])))[None, :]])
+            print(xyz, FK(q=deg2rad(qt[-1])))
+
+        return qt
 
     def solve6dofana(self, x, y, z, alpha, beta, gamma):
         theta1, theta2, theta3 = self.solve3dofana(x, y, z)
@@ -151,8 +183,35 @@ class IKSolverCUTER3DoFNum(_IKSolverCUTER3DoF):
     def __init__(self):
         super().__init__()
 
+    def postprocessing(self, qt):
+        # for t in range(qt.shape[0]):
+        #     qt[t] = qt[t] % (np.sign(qt[t]) * 360)
+        return qt
+
     def __call__(self, taskspace: list):
-        pass
+        # redefine variables name
+        l1 = self.l1
+        l2 = sqrt(self.l2 ** 2 + self.l3 ** 2)
+        l3 = self.l4
+        beta = 0.1488
+
+        def J(_):
+            theta1 = _[0, 0]
+            theta2 = _[0, 1]
+            theta3 = _[0, 2]
+            return np.array([[-cos(theta1) * (l3 * cos(theta2 + theta3) + l2 * cos(beta - theta2)),
+                              sin(theta1) * (l3 * sin(theta2 + theta3) - l2 * sin(beta - theta2)),
+                              l3 * sin(theta2 + theta3) * sin(theta1)],
+                             [-sin(theta1) * (l3 * cos(theta2 + theta3) + l2 * cos(beta - theta2)),
+                              -cos(theta1) * (l3 * sin(theta2 + theta3) - l2 * sin(beta - theta2)),
+                              -l3 * sin(theta2 + theta3) * cos(theta1)],
+                             [0,
+                              l3 * cos(theta2 + theta3) + l2 * cos(beta - theta2),
+                              l3 * cos(theta2 + theta3)]])
+
+        qt = self.solvenum(taskspace, J, partial(CUTER_FK_3DOF, ik=self))
+        qt = self.postprocessing(qt)
+        return qt.transpose().tolist()
 
 
 class _IKSolverCUTER6DoF(_IKSolverCUTER):

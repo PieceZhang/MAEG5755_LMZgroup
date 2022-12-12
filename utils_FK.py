@@ -3,7 +3,10 @@ import numpy as np
 from numpy import sin, cos, sqrt
 
 
-def CUTER_FK_3DOF(ik, theta1, theta2, theta3):
+def CUTER_FK_3DOF(ik, q):
+    theta1 = q[0]
+    theta2 = q[1]
+    theta3 = q[2]
     l1 = ik.l1
     l2 = sqrt(ik.l2 ** 2 + ik.l3 ** 2)
     l3 = ik.l4
@@ -13,5 +16,5 @@ def CUTER_FK_3DOF(ik, theta1, theta2, theta3):
     return x, y, z
 
 
-def CUTER_FK_6DOF(ik, theta1, theta2, theta3, theta4, theta5, theta6):
+def CUTER_FK_6DOF(ik, q):
     pass

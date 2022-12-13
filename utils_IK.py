@@ -54,20 +54,18 @@ class _IKSolverCUTER(object):
         # cat
         theta3 -= 0.1488
         theta2 += 0.1488
-        # theta2 += np.array([[0.1488, -0.1488], [0.1488, -0.1488]])
         # FK (for verification)
-        x_fk, y_fk, z_fk = CUTER_FK_3DOF(self, [theta1, theta2, theta3])
+        # x_fk, y_fk, z_fk = CUTER_FK_3DOF(self, [theta1, theta2, theta3])
         return theta1, theta2, theta3
 
-    def solvenum(self, taskspace, J, FK):
+    def solvenum(self, taskspace, J, FK, qtlast):
         taskspace = np.array(taskspace).transpose()
         dxr = np.diff(taskspace.transpose()).transpose()  # dx reference
         dxr = np.concatenate([dxr, dxr[-1, :][None, :]])
-        dt = 1  # time step 50Hz ??
-        qtlast = np.array([[0 for _ in range(taskspace.shape[1])]])
+        dt = 0.02  # time step 50Hz
         qt = np.ndarray((0, taskspace.shape[1]))  # qt
         et = np.ndarray((0, taskspace.shape[1]))  # et
-        Kp = np.array([0.05, 0.05, 0.05])
+        Kp = np.array([25 for _ in range(taskspace.shape[1])])
 
         def offset(_):
             x = _.copy()
@@ -79,15 +77,15 @@ class _IKSolverCUTER(object):
             xyz = np.array([-xyz[0], -xyz[2], xyz[1]])
             dxc = dxr[i, :] + Kp * (xyz - FK(q=offset(qtlast[0])))  # dx control
             qtlast = qtlast + dt * (np.linalg.inv(J(qtlast)) @ dxc)
+            # limit
+            qtlast[-1, 0] = max(deg2rad(self.theta_min[0]), min(deg2rad(self.theta_max[0]), qtlast[-1, 0]))
+            qtlast[-1, 1] = max(deg2rad(self.theta_min[1]), min(deg2rad(self.theta_max[1]), qtlast[-1, 1]))
+            qtlast[-1, 2] = max(deg2rad(self.theta_min[2]), min(deg2rad(self.theta_max[2]), qtlast[-1, 2]))
             # cat
             qt = np.concatenate([qt, list(map(lambda x: rad2deg(offset(x)), qtlast))[0][None, :]])
-            # limit
-            qt[-1, 0] = max(self.theta_min[0], min(self.theta_max[0], qt[-1, 0]))
-            qt[-1, 1] = max(self.theta_min[1], min(self.theta_max[1], qt[-1, 1]))
-            qt[-1, 2] = max(self.theta_min[2], min(self.theta_max[2], qt[-1, 2]))
             # for debug
-            et = np.concatenate([et, (xyz - FK(q=offset(qtlast[0])))[None, :]])
-            print(xyz, FK(q=deg2rad(qt[-1])))
+            # et = np.concatenate([et, (xyz - FK(q=offset(qtlast[0])))[None, :]])
+            # print(xyz, FK(q=deg2rad(qt[-1])))
 
         return qt
 
@@ -183,11 +181,6 @@ class IKSolverCUTER3DoFNum(_IKSolverCUTER3DoF):
     def __init__(self):
         super().__init__()
 
-    def postprocessing(self, qt):
-        # for t in range(qt.shape[0]):
-        #     qt[t] = qt[t] % (np.sign(qt[t]) * 360)
-        return qt
-
     def __call__(self, taskspace: list):
         # redefine variables name
         l1 = self.l1
@@ -209,8 +202,9 @@ class IKSolverCUTER3DoFNum(_IKSolverCUTER3DoF):
                               l3 * cos(theta2 + theta3) + l2 * cos(beta - theta2),
                               l3 * cos(theta2 + theta3)]])
 
-        qt = self.solvenum(taskspace, J, partial(CUTER_FK_3DOF, ik=self))
-        qt = self.postprocessing(qt)
+        initq = self.postprocessing(self.solve3dofana(-taskspace[0][0], -taskspace[2][0], taskspace[1][0]))
+        initq = deg2rad(initq)
+        qt = self.solvenum(taskspace, J, partial(CUTER_FK_3DOF, ik=self), initq)
         return qt.transpose().tolist()
 
 

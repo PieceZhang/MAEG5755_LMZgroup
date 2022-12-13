@@ -3,7 +3,6 @@ import math
 import numpy as np
 from functools import partial
 from numpy import sin, cos, arccos, arcsin, arctan2, pi, sqrt
-# from sympy import Symbol, solve, nsolve, sin, cos, acos, atan, pi
 import matplotlib.pyplot as plt
 from utils_FK import CUTER_FK_3DOF, CUTER_FK_6DOF
 
@@ -20,17 +19,57 @@ class _IKSolverCUTER(object):
     """
     Basic IK class
     """
+
     def __init__(self):
         """
         Basic IK solver class
         """
-        self.theta_min_deg = [-90, 0, -140, -180, -110, -180]
+        self.theta_min_deg = [-90, -15, -140, -180, -110, -180]
         self.theta_max_deg = [90, 180, 45, 180, 110, 180]
         self.l1 = 10.18
         self.l2 = 19.41
         self.l3 = 2.91
         self.l4 = 25.22
         self.l5 = 3.00
+
+    def postprocessing_3dof(self, rad):
+        """
+        post processing, convert rad roots to angle
+        :param rad: rad
+        :return: angle
+        """
+        deg = list(map(lambda x: rad2deg(x), rad))
+        constrain = [[[self.theta_min_deg[0] < deg[0][0, 0] < self.theta_max_deg[0],
+                       self.theta_min_deg[0] < deg[0][0, 1] < self.theta_max_deg[0]],
+                      [self.theta_min_deg[0] < deg[0][1, 0] < self.theta_max_deg[0],
+                       self.theta_min_deg[0] < deg[0][1, 1] < self.theta_max_deg[0]]],
+                     [[self.theta_min_deg[1] < deg[1][0, 0] < self.theta_max_deg[1],
+                       self.theta_min_deg[1] < deg[1][0, 1] < self.theta_max_deg[1]],
+                      [self.theta_min_deg[1] < deg[1][1, 0] < self.theta_max_deg[1],
+                       self.theta_min_deg[1] < deg[1][1, 1] < self.theta_max_deg[1]]],
+                     [[self.theta_min_deg[2] < deg[2][0] < self.theta_max_deg[2],
+                       self.theta_min_deg[2] < deg[2][1] < self.theta_max_deg[2]]]]
+        select = []
+        for theta3 in range(2):
+            # theta3
+            if not constrain[2][0][theta3]:
+                continue
+            # theta2
+            for theta2 in range(2):
+                # theta1
+                if not constrain[1][theta3][theta2] or not constrain[0][theta3][theta2]:
+                    continue
+                else:
+                    theta1 = theta2
+                    select.append([theta1, theta2, theta3])
+                    break
+        # if len(select) == 2:
+        #     theta1, theta2, theta3 = select[0]  # to choose 1 or 0 if multi solutions exist
+        if not constrain[2][0][theta3] or not constrain[1][theta3][theta2] or not ('theta1' in locals().keys()):
+            raise ValueError('[IKSolver] Location cannot reach!')
+        elif False in [constrain[2][0][theta3], constrain[1][theta3][theta2], constrain[0][theta3][theta1]]:
+            raise ValueError('[IKSolver] Runtime error!')
+        return np.array([[deg[0][theta3, theta1], deg[1][theta3, theta2], deg[2][theta3]]], dtype=float)
 
     def solve3dofana(self, x, y, z):
         """
@@ -64,9 +103,11 @@ class _IKSolverCUTER(object):
         # cat
         theta3 -= 0.1488
         theta2 += 0.1488
+        # postprocessing
+        q = self.postprocessing_3dof([theta1, theta2, theta3])
         # FK (for verification)
-        # x_fk, y_fk, z_fk = CUTER_FK_3DOF(self, [theta1, theta2, theta3])
-        return theta1, theta2, theta3
+        # x_fk, y_fk, z_fk = CUTER_FK_3DOF(self, deg2rad(np.array([q[0, 0], q[0, 1], q[0, 2]])))
+        return q
 
     def solve6dofana(self, x, y, z, alpha, beta, gamma):
         """
@@ -79,7 +120,8 @@ class _IKSolverCUTER(object):
         :param gamma: z rot
         :return: theta1, theta2, theta3, theta4, theta5, theta6
         """
-        theta1, theta2, theta3 = self.solve3dofana(x, y, z)
+        q123 = self.solve3dofana(x, y, z)
+        theta1, theta2, theta3 = q123[0, 0], q123[0, 1], q123[0, 2]
         R03 = np.array([[-cos(theta2 + theta3) * sin(theta1), sin(theta2 + theta3) * sin(theta1), cos(theta1)],
                         [cos(theta2 + theta3) * cos(theta1), -sin(theta2 + theta3) * cos(theta1), sin(theta1)],
                         [sin(theta2 + theta3), cos(theta2 + theta3), 0]])
@@ -87,7 +129,7 @@ class _IKSolverCUTER(object):
         theta4 = None
         theta5 = None
         theta6 = None
-        return theta1, theta2, theta3, theta4, theta5, theta6
+        return np.array([theta1, theta2, theta3, theta4, theta5, theta6])
 
     def solvenum(self, taskspace, J, FK, qtlast):
         """
@@ -131,50 +173,6 @@ class _IKSolverCUTER(object):
 class _IKSolverCUTER3DoF(_IKSolverCUTER):
     def __init__(self):
         super().__init__()
-        # some variables in basic class are overrided
-        self.theta_min_deg = [-90, -15, -140]
-        self.theta_max_deg = [90, 180, 45]
-        # self.l4 = 20.2
-        self.l4 = 25.22  # if use grabber, then set l4 to be longer
-
-    def postprocessing_3dof(self, rad):
-        """
-        post processing, convert rad roots to angle
-        :param rad: rad
-        :return: angle
-        """
-        deg = list(map(lambda x: rad2deg(x), rad))
-        constrain = [[[self.theta_min_deg[0] < deg[0][0, 0] < self.theta_max_deg[0],
-                       self.theta_min_deg[0] < deg[0][0, 1] < self.theta_max_deg[0]],
-                      [self.theta_min_deg[0] < deg[0][1, 0] < self.theta_max_deg[0],
-                       self.theta_min_deg[0] < deg[0][1, 1] < self.theta_max_deg[0]]],
-                     [[self.theta_min_deg[1] < deg[1][0, 0] < self.theta_max_deg[1],
-                       self.theta_min_deg[1] < deg[1][0, 1] < self.theta_max_deg[1]],
-                      [self.theta_min_deg[1] < deg[1][1, 0] < self.theta_max_deg[1],
-                       self.theta_min_deg[1] < deg[1][1, 1] < self.theta_max_deg[1]]],
-                     [[self.theta_min_deg[2] < deg[2][0] < self.theta_max_deg[2],
-                       self.theta_min_deg[2] < deg[2][1] < self.theta_max_deg[2]]]]
-        select = []
-        for theta3 in range(2):
-            # theta3
-            if not constrain[2][0][theta3]:
-                continue
-            # theta2
-            for theta2 in range(2):
-                # theta1
-                if not constrain[1][theta3][theta2] or not constrain[0][theta3][theta2]:
-                    continue
-                else:
-                    theta1 = theta2
-                    select.append([theta1, theta2, theta3])
-                    break
-        # if len(select) == 2:
-        #     theta1, theta2, theta3 = select[0]  # to choose 1 or 0 if multi solutions exist
-        if not constrain[2][0][theta3] or not constrain[1][theta3][theta2] or not ('theta1' in locals().keys()):
-            raise ValueError('[IKSolver] Location cannot reach!')
-        elif False in [constrain[2][0][theta3], constrain[1][theta3][theta2], constrain[0][theta3][theta1]]:
-            raise ValueError('[IKSolver] Runtime error!')
-        return np.array([[deg[0][theta3, theta1], deg[1][theta3, theta2], deg[2][theta3]]], dtype=float)
 
     def __call__(self, taskspace: list):
         raise NotImplementedError
@@ -195,8 +193,8 @@ class IKSolverCUTER3DoFAna(_IKSolverCUTER3DoF):
             x = -xyz[0]
             z = xyz[1]
             y = -xyz[2]  # exchange y and z to match the coor in the simulator
-            theta1, theta2, theta3 = self.solve3dofana(x, y, z)
-            qt = np.concatenate([qt, self.postprocessing_3dof([theta1, theta2, theta3])])
+            q = self.solve3dofana(x, y, z)
+            qt = np.concatenate([qt, q])
         return qt.transpose().tolist()
 
 
@@ -229,7 +227,7 @@ class IKSolverCUTER3DoFNum(_IKSolverCUTER3DoF):
                               l3 * cos(theta2 + theta3) + l2 * cos(beta - theta2),
                               l3 * cos(theta2 + theta3)]])
 
-        initq = self.postprocessing_3dof(self.solve3dofana(-taskspace[0][0], -taskspace[2][0], taskspace[1][0]))
+        initq = self.solve3dofana(-taskspace[0][0], -taskspace[2][0], taskspace[1][0])
         initq = deg2rad(initq)
         qt = self.solvenum(taskspace, J, partial(CUTER_FK_3DOF, ik=self), initq)
         return qt.transpose().tolist()
@@ -238,11 +236,6 @@ class IKSolverCUTER3DoFNum(_IKSolverCUTER3DoF):
 class _IKSolverCUTER6DoF(_IKSolverCUTER):
     def __init__(self):
         super().__init__()
-        self.theta_min_deg = [-90, 0, -140, -180, -110, -180]
-        self.theta_max_deg = [90, 180, 45, 180, 110, 180]
-
-    def postprocessing(self, rad):
-        pass
 
     def __call__(self, taskspace: list):
         raise NotImplementedError
@@ -266,8 +259,8 @@ class IKSolverCUTER6DoFAna(_IKSolverCUTER6DoF):
             alpha = ts[3]
             beta = ts[4]
             gamma = ts[5]
-            theta1, theta2, theta3, theta4, theta5, theta6 = self.solve6dofana(x, y, z, alpha, beta, gamma)
-            qt = np.concatenate([qt, self.postprocessing([theta1, theta2, theta3, theta4, theta5, theta6])])
+            q = self.solve6dofana(x, y, z, alpha, beta, gamma)
+            qt = np.concatenate([qt, q])
         return qt.transpose().tolist()
 
 

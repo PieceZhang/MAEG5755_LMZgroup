@@ -80,9 +80,10 @@ class _Trajectory(object):
         if self.IKsolver is not None:
             value_list = self.IKsolver(value_list)
 
-        for t in firelist:
-            for i in range(self.num_dofs):
-                value_list[i].insert(int(t * self.frequency), 'fire')
+        if firelist is not None:
+            for t in firelist:
+                for i in range(self.num_dofs):
+                    value_list[i].insert(int(t * self.frequency), 'fire')
 
         return value_list
 
@@ -178,9 +179,10 @@ class TrajCubicContiguousTS(TrajCubicNonContiguousTS):
         if self.IKsolver is not None:
             value_list = self.IKsolver(value_list)
 
-        for t in firelist:
-            for i in range(self.num_dofs):
-                value_list[i].insert(int(t * self.frequency), 'fire')
+        if firelist is not None:
+            for t in firelist:
+                for i in range(self.num_dofs):
+                    value_list[i].insert(int(t * self.frequency), 'fire')
 
         return value_list
 

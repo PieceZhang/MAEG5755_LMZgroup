@@ -89,9 +89,8 @@ class _IKSolverCUTER(object):
             dxc = dxr[i, :] + Kp * (xyz - FK(q=offset(qtlast[0])))  # dx control
             qtlast = qtlast + dt * (np.linalg.inv(J(qtlast)) @ dxc)
             # limit
-            qtlast[-1, 0] = max(deg2rad(self.theta_min_deg[0]), min(deg2rad(self.theta_max_deg[0]), qtlast[-1, 0]))
-            qtlast[-1, 1] = max(deg2rad(self.theta_min_deg[1]), min(deg2rad(self.theta_max_deg[1]), qtlast[-1, 1]))
-            qtlast[-1, 2] = max(deg2rad(self.theta_min_deg[2]), min(deg2rad(self.theta_max_deg[2]), qtlast[-1, 2]))
+            for j in range(qtlast.shape[1]):
+                qtlast[0, j] = max(deg2rad(self.theta_min_deg[j]), min(deg2rad(self.theta_max_deg[j]), qtlast[0, j]))
             # cat
             qt = np.concatenate([qt, list(map(lambda x: rad2deg(offset(x)), qtlast))[0][None, :]])
             # for debug

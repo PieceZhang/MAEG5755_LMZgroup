@@ -17,6 +17,9 @@ def deg2rad(x):
 
 
 class _IKSolverCUTER(object):
+    """
+    Basic IK class
+    """
     def __init__(self):
         """
         Basic IK solver class
@@ -30,6 +33,13 @@ class _IKSolverCUTER(object):
         self.l5 = 3.00
 
     def solve3dofana(self, x, y, z):
+        """
+        3 dof analytical IK
+        :param x: x coor
+        :param y: y coor
+        :param z: z coor
+        :return: theta1, theta2, theta3
+        """
         # redefine variables name
         l1 = self.l1
         l2 = sqrt(self.l2 ** 2 + self.l3 ** 2)
@@ -59,6 +69,16 @@ class _IKSolverCUTER(object):
         return theta1, theta2, theta3
 
     def solve6dofana(self, x, y, z, alpha, beta, gamma):
+        """
+        6 dof analytical IK
+        :param x: x coor
+        :param y: y coor
+        :param z: z coor
+        :param alpha: x rot
+        :param beta: y rot
+        :param gamma: z rot
+        :return: theta1, theta2, theta3, theta4, theta5, theta6
+        """
         theta1, theta2, theta3 = self.solve3dofana(x, y, z)
         R03 = np.array([[-cos(theta2 + theta3) * sin(theta1), sin(theta2 + theta3) * sin(theta1), cos(theta1)],
                         [cos(theta2 + theta3) * cos(theta1), -sin(theta2 + theta3) * cos(theta1), sin(theta1)],
@@ -70,6 +90,14 @@ class _IKSolverCUTER(object):
         return theta1, theta2, theta3, theta4, theta5, theta6
 
     def solvenum(self, taskspace, J, FK, qtlast):
+        """
+        numerical IK (3 dof / 6 dof)
+        :param taskspace: list of x
+        :param J: Jacobian func
+        :param FK: FK func
+        :param qtlast: initial q
+        :return: qt (in array)
+        """
         taskspace = np.array(taskspace).transpose()
         dxr = np.diff(taskspace.transpose()).transpose()  # dx reference
         dxr = np.concatenate([dxr, dxr[-1, :][None, :]])

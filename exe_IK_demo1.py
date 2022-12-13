@@ -11,8 +11,8 @@ if __name__ == '__main__':
     loc_seagull2 = [-20.116, 47.255, -6.148]
     loc_end = [-25, 20, -20]
 
-    trajgen = traj.TrajLinearTS(IKsolver=IK.IKSolverCUTER3DoFNum())
-    # trajgen = traj.TrajLinearTS(IKsolver=IK.IKSolverCUTER3DoFAna())
+    trajgen = traj.TrajQuinticContiguousTS(IKsolver=IK.IKSolverCUTER3DoFNum())
+    # trajgen = traj.TrajQuinticContiguousTS(IKsolver=IK.IKSolverCUTER3DoFAna())
     # whole_traj = trajgen.get_whole_traj([[-4, 3, -32], [-25, 20, -10], [-4, 3, -32]], [0, 1, 2], [1, 2])  # -10 30 -80
     # whole_traj = trajgen.get_whole_traj([loc_end, loc_pigeon, loc_end, loc_pigeon], [0, 1, 2, 3], [1, 2])
     # whole_traj = trajgen.get_whole_traj([loc_end, loc_Penguin, loc_end, loc_Penguin], [0, 1, 2, 3], [1, 2])

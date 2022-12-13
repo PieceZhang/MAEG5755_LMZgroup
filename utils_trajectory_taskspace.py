@@ -113,7 +113,7 @@ class TrajCubicNonContiguousTS(_Trajectory):
     Cubic trajectory
     """
     def _get_traj_func(self, init_theta, end_theta, init_t, end_t, v1=None, v2=None):
-        assert len(init_theta) == len(end_theta) == self.num_dofs and type(init_theta[0]) is int
+        assert len(init_theta) == len(end_theta) == self.num_dofs
         func_list = []
         t1 = init_t
         t2 = end_t
@@ -192,7 +192,7 @@ class TrajQuinticContiguousTS(TrajCubicContiguousTS):
     Quintic trajectory
     """
     def _get_traj_func(self, init_theta, end_theta, init_t, end_t, v1=None, v2=None, a1=None, a2=None):
-        assert len(init_theta) == len(end_theta) == self.num_dofs and type(init_theta[0]) is int
+        assert len(init_theta) == len(end_theta) == self.num_dofs
         func_list = []
         t1 = init_t
         t2 = end_t

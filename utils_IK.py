@@ -5,6 +5,7 @@ from functools import partial
 from numpy import sin, cos, arccos, arcsin, arctan2, pi, sqrt
 import matplotlib.pyplot as plt
 from utils_FK import CUTER_FK_3DOF, CUTER_FK_6DOF
+from utils_Rmat import R03mat, R06mat
 
 
 def rad2deg(x):
@@ -109,6 +110,11 @@ class _IKSolverCUTER(object):
         # x_fk, y_fk, z_fk = CUTER_FK_3DOF(self, deg2rad(np.array([q[0, 0], q[0, 1], q[0, 2]])))
         return q
 
+    def postprocessing_6dof(self, rad):
+        deg = list(map(lambda x: rad2deg(x), rad))
+        deg[4] = 180 - deg[4]
+        return np.array([[deg[0], deg[1], deg[2], deg[3], deg[4], deg[5]]])
+
     def solve6dofana(self, x, y, z, alpha, beta, gamma):
         """
         6 dof analytical IK
@@ -120,16 +126,24 @@ class _IKSolverCUTER(object):
         :param gamma: z rot
         :return: theta1, theta2, theta3, theta4, theta5, theta6
         """
+        # solving for theta123
         q123 = self.solve3dofana(x, y, z)
-        theta1, theta2, theta3 = q123[0, 0], q123[0, 1], q123[0, 2]
-        R03 = np.array([[-cos(theta2 + theta3) * sin(theta1), sin(theta2 + theta3) * sin(theta1), cos(theta1)],
-                        [cos(theta2 + theta3) * cos(theta1), -sin(theta2 + theta3) * cos(theta1), sin(theta1)],
-                        [sin(theta2 + theta3), cos(theta2 + theta3), 0]])
-        # TODO
-        theta4 = None
-        theta5 = None
-        theta6 = None
-        return np.array([theta1, theta2, theta3, theta4, theta5, theta6])
+        theta1, theta2, theta3 = deg2rad(q123[0, 0]), deg2rad(q123[0, 1]), deg2rad(q123[0, 2])
+        # R36
+        R03 = R03mat(theta1, theta2, theta3)
+        R06 = R06mat(theta1, theta2, theta3, deg2rad(alpha), deg2rad(beta), deg2rad(gamma))
+        R36 = np.linalg.inv(R03) @ R06
+        # solving for theta5
+        theta5 = arccos(R36[1, 2])  # np.array([theta5, -theta5])
+        sintheta5 = sin(theta5)
+        if sintheta5 > 1e-8:
+            # solving for theta4
+            theta4 = arctan2(R36[2, 2] / sintheta5, R36[0, 2] / sintheta5)
+            # solving for theta6
+            theta6 = arctan2(-R36[1, 1] / sintheta5, R36[1, 0] / sintheta5)
+        else:
+            theta4 = theta6 = 0
+        return self.postprocessing_6dof([theta1, theta2, theta3, theta4, theta5, theta6])
 
     def solvenum(self, taskspace, J, FK, qtlast):
         """
@@ -236,6 +250,7 @@ class IKSolverCUTER3DoFNum(_IKSolverCUTER3DoF):
 class _IKSolverCUTER6DoF(_IKSolverCUTER):
     def __init__(self):
         super().__init__()
+        self.l4 += self.l5
 
     def __call__(self, taskspace: list):
         raise NotImplementedError

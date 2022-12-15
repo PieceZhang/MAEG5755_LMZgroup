@@ -17,6 +17,9 @@ class _Trajectory(object):
         if num_dofs == 3:
             self.dof_min = [-60, -60, -60]  # TBD
             self.dof_max = [60, 60, 60]
+        if num_dofs == 6:
+            self.dof_min = [-60, -60, -60, -180, -180, -180]  # TBD
+            self.dof_max = [60, 60, 60, 180, 180, 180]
         else:
             raise ValueError("[ERROR] Undefined num_dofs.")
         self.frequency = frequency  # server update frequency
@@ -92,6 +95,7 @@ class TrajLinearTS(_Trajectory):
     """
     Linear trajectory
     """
+
     def _get_traj_func(self, init_theta, end_theta, init_t, end_t):
         assert len(init_theta) == len(end_theta) == self.num_dofs
         func_list = []
@@ -112,6 +116,7 @@ class TrajCubicNonContiguousTS(_Trajectory):
     """
     Cubic trajectory
     """
+
     def _get_traj_func(self, init_theta, end_theta, init_t, end_t, v1=None, v2=None):
         assert len(init_theta) == len(end_theta) == self.num_dofs
         func_list = []
@@ -143,6 +148,7 @@ class TrajCubicContiguousTS(TrajCubicNonContiguousTS):
     """
     Cubic trajectory
     """
+
     def get_whole_traj(self, thetalist: list, timelist: list, firelist=None, visual=False):
         assert len(thetalist) == len(timelist)
         assert firelist is None or max(firelist) <= max(timelist)
@@ -191,6 +197,7 @@ class TrajQuinticContiguousTS(TrajCubicContiguousTS):
     """
     Quintic trajectory
     """
+
     def _get_traj_func(self, init_theta, end_theta, init_t, end_t, v1=None, v2=None, a1=None, a2=None):
         assert len(init_theta) == len(end_theta) == self.num_dofs
         func_list = []
@@ -210,8 +217,10 @@ class TrajQuinticContiguousTS(TrajCubicContiguousTS):
                             2 * symsparam[3] * t1 + symsparam[4] - v1.__next__(),
                             5 * symsparam[0] * t2 ** 4 + 4 * symsparam[1] * t2 ** 3 + 3 * symsparam[2] * t2 ** 2 +
                             2 * symsparam[3] * t2 + symsparam[4] - v2.__next__(),
-                            20 * symsparam[0] * t1 ** 3 + 12 * symsparam[1] * t1 ** 2 + 6 * symsparam[2] * t1 + 2 * symsparam[3] - a1.__next__(),
-                            20 * symsparam[0] * t2 ** 3 + 12 * symsparam[1] * t2 ** 2 + 6 * symsparam[2] * t2 + 2 * symsparam[3] - a2.__next__()],
+                            20 * symsparam[0] * t1 ** 3 + 12 * symsparam[1] * t1 ** 2 + 6 * symsparam[2] * t1 + 2 *
+                            symsparam[3] - a1.__next__(),
+                            20 * symsparam[0] * t2 ** 3 + 12 * symsparam[1] * t2 ** 2 + 6 * symsparam[2] * t2 + 2 *
+                            symsparam[3] - a2.__next__()],
                            symsparam)
             func_list.append(partial(np.polyval, p=[float(params[symsparam[_]]) for _ in range(len(symsparam))]))
         return func_list

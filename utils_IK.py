@@ -145,9 +145,10 @@ class _IKSolverCUTER(object):
             theta4 = theta6 = 0
         return self.postprocessing_6dof([theta1, theta2, theta3, theta4, theta5, theta6])
 
-    def solvenum(self, taskspace, J, FK, qtlast, dof=3):
+    def solvenum(self, taskspace, J, FK, qtlast, dof=3, qd=None):
         """
         numerical IK (3 dof / 6 dof)
+        :param qd: (null space operation) z=-a*(q-qd)
         :param dof: DoF
         :param taskspace: list of x
         :param J: Jacobian func
@@ -165,6 +166,11 @@ class _IKSolverCUTER(object):
             Kp = np.array([25 for _ in range(3)])
         else:
             Kp = np.array([25 for _ in range(3)] + [0.25 for _ in range(3)])
+        if qd is None:
+            a = 0
+            qd = np.zeros((dof, 1))
+        else:
+            a = 0.02
 
         def offset(_):
             x = _.copy()
@@ -178,7 +184,10 @@ class _IKSolverCUTER(object):
             else:
                 xyz = np.array([-xyz[0], -xyz[2], xyz[1], xyz[3], xyz[4], xyz[5]])
             dxc = dxr[i, :] + Kp * (xyz - FK(q=offset(qtlast[0])))  # dx control
-            qtlast = qtlast + dt * (np.linalg.pinv(J(qtlast)) @ dxc)
+            Jq = J(qtlast)
+            invJq = np.linalg.pinv(Jq)
+            z = -a * (qtlast.transpose() - qd)  # null space vectoe
+            qtlast = qtlast + (dt * (invJq @ dxc)[:, None] + (np.eye(dof) - invJq @ Jq) @ z).transpose()
             # limit
             for j in range(qtlast.shape[1]):
                 qtlast[0, j] = max(deg2rad(self.theta_min_deg[j]), min(deg2rad(self.theta_max_deg[j]), qtlast[0, j]))
@@ -309,7 +318,6 @@ class IKSolverCUTER6DoFNumxyz(_IKSolverCUTER6DoF):
         super().__init__()
 
     def __call__(self, taskspace: list):
-
         def J(_):
             theta1 = _[0, 0]
             theta2 = _[0, 1]
@@ -323,5 +331,12 @@ class IKSolverCUTER6DoFNumxyz(_IKSolverCUTER6DoF):
         initq = self.solve3dofana(-taskspace[0][0], -taskspace[2][0], taskspace[1][0])
         initq = deg2rad(initq)
         initq = np.concatenate([initq, np.array([[0, 0, 0]])], axis=1)
-        qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, dof=6)
+        qd = deg2rad(np.array([[np.mean([self.theta_max_deg[0], self.theta_min_deg[0]])],
+                               [np.mean([self.theta_max_deg[1], self.theta_min_deg[1]])],
+                               [np.mean([self.theta_max_deg[2], self.theta_min_deg[2]])],
+                               [np.mean([self.theta_max_deg[3], self.theta_min_deg[3]])],
+                               [np.mean([self.theta_max_deg[4], self.theta_min_deg[4]])],
+                               [np.mean([self.theta_max_deg[5], self.theta_min_deg[5]])]]))
+        # qd = None
+        qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, dof=6, qd=qd)
         return qt.transpose().tolist()

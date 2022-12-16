@@ -4,8 +4,8 @@ import numpy as np
 from functools import partial
 from numpy import sin, cos, arccos, arcsin, arctan2, pi, sqrt
 import matplotlib.pyplot as plt
-from utils_FK import CUTER_FK_3DOF, CUTER_FK_6DOF
-from utils_Rmat import R03mat, R06mat
+from utils_FK import CUTER_FK_3DOF, CUTER_FK_6DOF, CUTER_FK_6DOFxyz
+import utils_equations as eq
 
 
 def rad2deg(x):
@@ -130,8 +130,8 @@ class _IKSolverCUTER(object):
         q123 = self.solve3dofana(x, y, z)
         theta1, theta2, theta3 = deg2rad(q123[0, 0]), deg2rad(q123[0, 1]), deg2rad(q123[0, 2])
         # R36
-        R03 = R03mat(theta1, theta2, theta3)
-        R06 = R06mat(theta1, theta2, theta3, deg2rad(alpha), deg2rad(beta), deg2rad(gamma))
+        R03 = eq.R03mat(theta1, theta2, theta3)
+        R06 = eq.R06mat(theta1, theta2, theta3, deg2rad(alpha), deg2rad(beta), deg2rad(gamma))
         R36 = np.linalg.inv(R03) @ R06
         # solving for theta5
         theta5 = arccos(R36[1, 2])  # np.array([theta5, -theta5])
@@ -145,9 +145,10 @@ class _IKSolverCUTER(object):
             theta4 = theta6 = 0
         return self.postprocessing_6dof([theta1, theta2, theta3, theta4, theta5, theta6])
 
-    def solvenum(self, taskspace, J, FK, qtlast):
+    def solvenum(self, taskspace, J, FK, qtlast, taskdim=3):
         """
         numerical IK (3 dof / 6 dof)
+        :param taskdim: dimension of task space variable
         :param taskspace: list of x
         :param J: Jacobian func
         :param FK: FK func
@@ -158,9 +159,12 @@ class _IKSolverCUTER(object):
         dxr = np.diff(taskspace.transpose()).transpose()  # dx reference
         dxr = np.concatenate([dxr, dxr[-1, :][None, :]])
         dt = 0.02  # time step 50Hz
-        qt = np.ndarray((0, taskspace.shape[1]))  # qt
+        qt = np.ndarray((0, taskdim))  # qt
         et = np.ndarray((0, taskspace.shape[1]))  # et
-        Kp = np.array([25 for _ in range(taskspace.shape[1])])
+        if taskspace.shape[1] == 3:
+            Kp = np.array([25 for _ in range(3)])
+        else:
+            Kp = np.array([25 for _ in range(3)] + [0.25 for _ in range(3)])
 
         def offset(_):
             x = _.copy()
@@ -169,9 +173,12 @@ class _IKSolverCUTER(object):
             return x
 
         for i, xyz in enumerate(taskspace):
-            xyz = np.array([-xyz[0], -xyz[2], xyz[1]])
+            if taskspace.shape[1] == 3:
+                xyz = np.array([-xyz[0], -xyz[2], xyz[1]])
+            else:
+                xyz = np.array([-xyz[0], -xyz[2], xyz[1], xyz[3], xyz[4], xyz[5]])
             dxc = dxr[i, :] + Kp * (xyz - FK(q=offset(qtlast[0])))  # dx control
-            qtlast = qtlast + dt * (np.linalg.inv(J(qtlast)) @ dxc)
+            qtlast = qtlast + dt * (np.linalg.pinv(J(qtlast)) @ dxc)
             # limit
             for j in range(qtlast.shape[1]):
                 qtlast[0, j] = max(deg2rad(self.theta_min_deg[j]), min(deg2rad(self.theta_max_deg[j]), qtlast[0, j]))
@@ -282,6 +289,7 @@ class IKSolverCUTER6DoFAna(_IKSolverCUTER6DoF):
 class IKSolverCUTER6DoFNum(_IKSolverCUTER6DoF):
     """
     Numerical IK
+    x=[x y z alpha beta gamma]
     """
 
     def __init__(self):
@@ -289,3 +297,31 @@ class IKSolverCUTER6DoFNum(_IKSolverCUTER6DoF):
 
     def __call__(self, taskspace: list):
         pass
+
+
+class IKSolverCUTER6DoFNumxyz(_IKSolverCUTER6DoF):
+    """
+    Numerical IK
+    x=[x y z]
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, taskspace: list):
+
+        def J(_):
+            theta1 = _[0, 0]
+            theta2 = _[0, 1]
+            theta3 = _[0, 2]
+            theta4 = _[0, 3]
+            theta5 = _[0, 4]
+            theta6 = _[0, 5]
+            return eq.J_6dof_xyz(theta1, theta2, theta3, theta4, theta5, theta6,
+                                 self.l1, self.l2, self.l3, self.l4, self.l5)
+
+        initq = self.solve3dofana(-taskspace[0][0], -taskspace[2][0], taskspace[1][0])
+        initq = deg2rad(initq)
+        initq = np.concatenate([initq, np.array([[0, 0, 0]])], axis=1)
+        qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, taskdim=6)
+        return qt.transpose().tolist()

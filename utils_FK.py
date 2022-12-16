@@ -18,3 +18,36 @@ def CUTER_FK_3DOF(ik, q):
 
 def CUTER_FK_6DOF(ik, q):
     pass
+
+
+def CUTER_FK_6DOFxyz(ik, q):
+    theta1 = q[0]
+    theta2 = q[1]
+    theta3 = q[2]
+    theta4 = q[3]
+    theta5 = q[4]
+    theta6 = q[5]
+    l1 = ik.l1
+    l2 = ik.l2
+    l3 = ik.l3
+    l4 = ik.l4
+    l5 = ik.l5
+    beta = 0.1488
+    x = l5 * cos(theta1) * cos(theta5) * sin(theta4) - sin(theta1) * cos(beta - theta2) * (l2 ** 2 + l3 ** 2) ** (
+            1 / 2) - l4 * cos(theta2 + theta3) * sin(theta1) + l5 * cos(theta2) * sin(theta1) * sin(theta3) * sin(
+        theta5) + l5 * cos(theta3) * sin(theta1) * sin(theta2) * sin(theta5) - l5 * cos(theta2) * cos(theta3) * cos(
+        theta4) * cos(theta5) * sin(theta1) + l5 * cos(theta4) * cos(theta5) * sin(theta1) * sin(theta2) * sin(theta3)
+
+    y = l4 * cos(theta2 + theta3) * cos(theta1) + cos(theta1) * cos(beta - theta2) * (l2 ** 2 + l3 ** 2) ** (
+            1 / 2) + l5 * cos(theta5) * sin(theta1) * sin(theta4) - l5 * cos(theta1) * cos(theta2) * sin(
+        theta3) * sin(theta5) - l5 * cos(theta1) * cos(theta3) * sin(theta2) * sin(theta5) + l5 * cos(
+        theta1) * cos(theta2) * cos(theta3) * cos(theta4) * cos(theta5) - l5 * cos(theta1) * cos(theta4) * cos(
+        theta5) * sin(theta2) * sin(theta3)
+
+    z = l1 - l4 * (sin(beta - theta2) * cos(beta + theta3) - sin(beta + theta3) * cos(beta - theta2)) + l5 * (
+            sin(theta5) * (
+            sin(beta - theta2) * sin(beta + theta3) + cos(beta + theta3) * cos(beta - theta2)) - cos(
+        theta4) * cos(theta5) * (sin(beta - theta2) * cos(beta + theta3) - sin(beta + theta3) * cos(
+        beta - theta2))) - sin(beta - theta2) * (l2 ** 2 + l3 ** 2) ** (1 / 2)
+
+    return x, y, z

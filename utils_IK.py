@@ -145,10 +145,10 @@ class _IKSolverCUTER(object):
             theta4 = theta6 = 0
         return self.postprocessing_6dof([theta1, theta2, theta3, theta4, theta5, theta6])
 
-    def solvenum(self, taskspace, J, FK, qtlast, taskdim=3):
+    def solvenum(self, taskspace, J, FK, qtlast, dof=3):
         """
         numerical IK (3 dof / 6 dof)
-        :param taskdim: dimension of task space variable
+        :param dof: DoF
         :param taskspace: list of x
         :param J: Jacobian func
         :param FK: FK func
@@ -159,7 +159,7 @@ class _IKSolverCUTER(object):
         dxr = np.diff(taskspace.transpose()).transpose()  # dx reference
         dxr = np.concatenate([dxr, dxr[-1, :][None, :]])
         dt = 0.02  # time step 50Hz
-        qt = np.ndarray((0, taskdim))  # qt
+        qt = np.ndarray((0, dof))  # qt
         et = np.ndarray((0, taskspace.shape[1]))  # et
         if taskspace.shape[1] == 3:
             Kp = np.array([25 for _ in range(3)])
@@ -323,5 +323,5 @@ class IKSolverCUTER6DoFNumxyz(_IKSolverCUTER6DoF):
         initq = self.solve3dofana(-taskspace[0][0], -taskspace[2][0], taskspace[1][0])
         initq = deg2rad(initq)
         initq = np.concatenate([initq, np.array([[0, 0, 0]])], axis=1)
-        qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, taskdim=6)
+        qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, dof=6)
         return qt.transpose().tolist()

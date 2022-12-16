@@ -187,7 +187,7 @@ class TrajCubicContiguousTS(TrajCubicNonContiguousTS):
 
         if firelist is not None:
             for t in firelist:
-                for i in range(self.num_dofs):
+                for i in range(len(value_list)):
                     value_list[i].insert(int(t * self.frequency), 'fire')
 
         return value_list

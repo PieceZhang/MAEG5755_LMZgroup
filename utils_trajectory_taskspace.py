@@ -17,7 +17,7 @@ class _Trajectory(object):
         if num_dofs == 3:
             self.dof_min = [-60, -60, -60]  # TBD
             self.dof_max = [60, 60, 60]
-        if num_dofs == 6:
+        elif num_dofs == 6:
             self.dof_min = [-60, -60, -60, -180, -180, -180]  # TBD
             self.dof_max = [60, 60, 60, 180, 180, 180]
         else:

@@ -166,8 +166,6 @@ class _IKSolverCUTER(object):
             Kp = np.array([25 for _ in range(3)])
         else:
             Kp = np.array([25 for _ in range(3)] + [0.25 for _ in range(3)])
-        if zfunc is None:
-            zfunc = lambda _: np.zeros((dof, 1))
 
         def offset(_):
             x = _.copy()
@@ -176,15 +174,18 @@ class _IKSolverCUTER(object):
             return x
 
         for i, xyz in enumerate(taskspace):
-            if taskspace.shape[1] == 3:
+            if taskspace.shape[1] == 3:  # [x y z]
                 xyz = np.array([-xyz[0], -xyz[2], xyz[1]])
-            else:
+            else:  # [x y z alpha beta gamma]
                 xyz = np.array([-xyz[0], -xyz[2], xyz[1], xyz[3], xyz[4], xyz[5]])
             dxc = dxr[i, :] + Kp * (xyz - FK(q=offset(qtlast[0])))  # dx control
             Jq = J(qtlast)
             invJq = np.linalg.pinv(Jq)
-            z = zfunc(qtlast)  # null space vector
-            qtlast = qtlast + (dt * (invJq @ dxc)[:, None] + (np.eye(dof) - invJq @ Jq) @ z).transpose()
+            if zfunc is None:
+                qtlast = qtlast + dt * (invJq @ dxc)
+            else:  # if use null space
+                z = zfunc(qtlast)  # null space vector
+                qtlast = qtlast + (dt * (invJq @ dxc)[:, None] + (np.eye(dof) - invJq @ Jq) @ z).transpose()
             # limit
             for j in range(qtlast.shape[1]):
                 qtlast[0, j] = max(deg2rad(self.theta_min_deg[j]), min(deg2rad(self.theta_max_deg[j]), qtlast[0, j]))

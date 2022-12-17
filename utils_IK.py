@@ -165,7 +165,7 @@ class _IKSolverCUTER(object):
         if taskspace.shape[1] == 3:
             Kp = np.array([25 for _ in range(3)])
         else:
-            Kp = np.array([25 for _ in range(3)] + [0.25 for _ in range(3)])
+            Kp = np.array([25 for _ in range(3)] + [0.05 for _ in range(3)])
 
         def offset(_):
             x = _.copy()
@@ -177,7 +177,7 @@ class _IKSolverCUTER(object):
             if taskspace.shape[1] == 3:  # [x y z]
                 xyz = np.array([-xyz[0], -xyz[2], xyz[1]])
             else:  # [x y z alpha beta gamma]
-                xyz = np.array([-xyz[0], -xyz[2], xyz[1], xyz[3], xyz[4], xyz[5]])
+                xyz = np.array([-xyz[0], -xyz[2], xyz[1], deg2rad(xyz[3]), deg2rad(xyz[4]), deg2rad(xyz[5])])
             dxc = dxr[i, :] + Kp * (xyz - FK(q=offset(qtlast[0])))  # dx control
             Jq = J(qtlast)
             invJq = np.linalg.pinv(Jq)
@@ -192,8 +192,8 @@ class _IKSolverCUTER(object):
             # cat
             qt = np.concatenate([qt, list(map(lambda x: rad2deg(offset(x)), qtlast))[0][None, :]])
             # for debug
-            # et = np.concatenate([et, (xyz - FK(q=offset(qtlast[0])))[None, :]])
-            # print(xyz, FK(q=deg2rad(qt[-1])))
+            et = np.concatenate([et, (xyz - FK(q=offset(qtlast[0])))[None, :]])
+            print(xyz, FK(q=deg2rad(qt[-1])))
 
         return qt
 
@@ -301,13 +301,14 @@ class IKSolverCUTER6DoFNum(_IKSolverCUTER6DoF):
             theta4 = _[0, 3]
             theta5 = _[0, 4]
             theta6 = _[0, 5]
-            return  # TODO
+            return eq.J_6dof(theta1, theta2, theta3, theta4, theta5, theta6,
+                             self.l1, self.l2, self.l3, self.l4, self.l5)
 
         initq = self.solve3dofana(-taskspace[0][0], -taskspace[2][0], taskspace[1][0])
         initq = deg2rad(initq)
         initq = np.concatenate([initq, np.array([[0, 0, 0]])], axis=1)
 
-        qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, dof=6)
+        qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOF, ik=self), initq, dof=6)
         return qt.transpose().tolist()
 
 

@@ -59,7 +59,7 @@ def CUTER_FK_6DOF(ik, q):
 
     x, y, z = CUTER_FK_6DOFxyz(ik, q)
 
-    beta = arcsin(sin(theta5) * (cos(theta1) * sin(theta4) - cos(theta4) * (
+    beta = np.pi - arcsin(sin(theta5) * (cos(theta1) * sin(theta4) - cos(theta4) * (
             cos(0.1488 + theta3) * sin(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
         0.1488 + theta3) * sin(
         theta1))) + cos(theta5) * (

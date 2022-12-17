@@ -1,6 +1,6 @@
 # Copyright (c) Zhang Yuelin. All Rights Reserved.
 import numpy as np
-from numpy import sin, cos, sqrt
+from numpy import sin, cos, sqrt, arcsin, arctan2
 
 
 def CUTER_FK_3DOF(ik, q):
@@ -14,10 +14,6 @@ def CUTER_FK_3DOF(ik, q):
     y = cos(theta1) * (l2 * cos(theta2 - 0.1488) + l3 * cos(theta2 + theta3))
     z = l1 + l2 * sin(theta2 - 0.1488) + l3 * sin(theta2 + theta3)
     return x, y, z
-
-
-def CUTER_FK_6DOF(ik, q):
-    pass
 
 
 def CUTER_FK_6DOFxyz(ik, q):
@@ -51,3 +47,53 @@ def CUTER_FK_6DOFxyz(ik, q):
         beta - theta2))) - sin(beta - theta2) * (l2 ** 2 + l3 ** 2) ** (1 / 2)
 
     return x, y, z
+
+
+def CUTER_FK_6DOF(ik, q):
+    theta1 = q[0]
+    theta2 = q[1]
+    theta3 = q[2]
+    theta4 = q[3]
+    theta5 = q[4]
+    theta6 = q[5]
+
+    x, y, z = CUTER_FK_6DOFxyz(ik, q)
+
+    beta = arcsin(sin(theta5) * (cos(theta1) * sin(theta4) - cos(theta4) * (
+            cos(0.1488 + theta3) * sin(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
+        0.1488 + theta3) * sin(
+        theta1))) + cos(theta5) * (
+                          sin(0.1488 - theta2) * cos(0.1488 + theta3) * sin(theta1) - sin(0.1488 + theta3) * sin(
+                      theta1) * cos(0.1488 - theta2)))
+
+    gamma = arctan2(-(cos(theta6) * (cos(theta1) * cos(theta4) + sin(theta4) * (
+            cos(0.1488 + theta3) * sin(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
+        0.1488 + theta3) * sin(
+        theta1))) - sin(theta6) * (cos(theta5) * (cos(theta1) * sin(theta4) - cos(theta4) * (
+            cos(0.1488 + theta3) * sin(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
+        0.1488 + theta3) * sin(
+        theta1))) - sin(theta5) * (sin(0.1488 - theta2) * cos(0.1488 + theta3) * sin(theta1) - sin(
+        0.1488 + theta3) * sin(
+        theta1) * cos(0.1488 - theta2)))) / cos(beta),
+                    (sin(theta6) * (cos(theta1) * cos(theta4) + sin(theta4) * (
+                            cos(0.1488 + theta3) * sin(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
+                        0.1488 + theta3) * sin(theta1))) + cos(theta6) * (cos(theta5) * (
+                            cos(theta1) * sin(theta4) - cos(theta4) * (
+                            cos(0.1488 + theta3) * sin(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
+                        0.1488 + theta3) * sin(theta1))) - sin(theta5) * (sin(0.1488 - theta2) * cos(
+                        0.1488 + theta3) * sin(theta1) - sin(0.1488 + theta3) * sin(theta1) * cos(
+                        0.1488 - theta2)))) / cos(
+                        beta))
+
+    alpha = arctan2(-(sin(theta5) * (sin(theta1) * sin(theta4) + cos(theta4) * (
+            cos(0.1488 + theta3) * cos(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
+        0.1488 + theta3) * cos(
+        theta1))) - cos(theta5) * (sin(0.1488 - theta2) * cos(0.1488 + theta3) * cos(theta1) - sin(
+        0.1488 + theta3) * cos(
+        theta1) * cos(0.1488 - theta2))) / cos(beta),
+                    (- cos(theta5) * (sin(0.1488 - theta2) * sin(0.1488 + theta3) + cos(0.1488 + theta3) * cos(
+                        0.1488 - theta2)) - cos(theta4) * sin(theta5) * (
+                             sin(0.1488 - theta2) * cos(0.1488 + theta3) - sin(0.1488 + theta3) * cos(
+                         0.1488 - theta2))) / cos(beta))
+
+    return x, y, z, alpha, beta, gamma

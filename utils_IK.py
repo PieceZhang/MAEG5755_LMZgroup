@@ -235,25 +235,16 @@ class IKSolverCUTER3DoFNum(_IKSolverCUTER3DoF):
         super().__init__()
 
     def __call__(self, taskspace: list):
-        # redefine variables name
-        l1 = self.l1
-        l2 = sqrt(self.l2 ** 2 + self.l3 ** 2)
-        l3 = self.l4
-        beta = 0.1488
 
         def J(_):
+            # redefine variables name
+            l1 = self.l1
+            l2 = sqrt(self.l2 ** 2 + self.l3 ** 2)
+            l3 = self.l4
             theta1 = _[0, 0]
             theta2 = _[0, 1]
             theta3 = _[0, 2]
-            return np.array([[-cos(theta1) * (l3 * cos(theta2 + theta3) + l2 * cos(beta - theta2)),
-                              sin(theta1) * (l3 * sin(theta2 + theta3) - l2 * sin(beta - theta2)),
-                              l3 * sin(theta2 + theta3) * sin(theta1)],
-                             [-sin(theta1) * (l3 * cos(theta2 + theta3) + l2 * cos(beta - theta2)),
-                              -cos(theta1) * (l3 * sin(theta2 + theta3) - l2 * sin(beta - theta2)),
-                              -l3 * sin(theta2 + theta3) * cos(theta1)],
-                             [0,
-                              l3 * cos(theta2 + theta3) + l2 * cos(beta - theta2),
-                              l3 * cos(theta2 + theta3)]])
+            return eq.J_3dof(theta1, theta2, theta3, l1, l2, l3)
 
         initq = self.solve3dofana(-taskspace[0][0], -taskspace[2][0], taskspace[1][0])
         initq = deg2rad(initq)
@@ -303,7 +294,21 @@ class IKSolverCUTER6DoFNum(_IKSolverCUTER6DoF):
         super().__init__()
 
     def __call__(self, taskspace: list):
-        pass
+        def J(_):
+            theta1 = _[0, 0]
+            theta2 = _[0, 1]
+            theta3 = _[0, 2]
+            theta4 = _[0, 3]
+            theta5 = _[0, 4]
+            theta6 = _[0, 5]
+            return  # TODO
+
+        initq = self.solve3dofana(-taskspace[0][0], -taskspace[2][0], taskspace[1][0])
+        initq = deg2rad(initq)
+        initq = np.concatenate([initq, np.array([[0, 0, 0]])], axis=1)
+
+        qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, dof=6)
+        return qt.transpose().tolist()
 
 
 class IKSolverCUTER6DoFNumxyz(_IKSolverCUTER6DoF):

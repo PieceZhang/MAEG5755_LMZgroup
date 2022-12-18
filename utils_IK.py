@@ -179,7 +179,8 @@ class _IKSolverCUTER(object):
             else:  # [x y z alpha beta gamma]
                 xyz = np.array([-xyz[0], -xyz[2], xyz[1], deg2rad(xyz[3]), deg2rad(xyz[4]), deg2rad(xyz[5])])
             dxc = dxr[i, :] + Kp * (xyz - FK(q=offset(qtlast[0])))  # dx control
-            Jq = J(qtlast)
+            # Jq = J(qtlast)
+            Jq = J(qtlast, xyz[3], xyz[4])
             invJq = np.linalg.pinv(Jq)
             if zfunc is None:
                 qtlast = qtlast + dt * (invJq @ dxc)
@@ -294,7 +295,7 @@ class IKSolverCUTER6DoFNum(_IKSolverCUTER6DoF):
         super().__init__()
 
     def __call__(self, taskspace: list):
-        def J(_):
+        def J(_, alpha, beta):
             theta1 = _[0, 0]
             theta2 = _[0, 1]
             theta3 = _[0, 2]
@@ -302,7 +303,7 @@ class IKSolverCUTER6DoFNum(_IKSolverCUTER6DoF):
             theta5 = _[0, 4]
             theta6 = _[0, 5]
             return eq.J_6dof(theta1, theta2, theta3, theta4, theta5, theta6,
-                             self.l1, self.l2, self.l3, self.l4, self.l5)
+                             self.l1, self.l2, self.l3, self.l4, self.l5, alpha, beta)
 
         initq = self.solve3dofana(-taskspace[0][0], -taskspace[2][0], taskspace[1][0])
         initq = deg2rad(initq)

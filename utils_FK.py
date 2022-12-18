@@ -59,41 +59,23 @@ def CUTER_FK_6DOF(ik, q):
 
     x, y, z = CUTER_FK_6DOFxyz(ik, q)
 
-    beta = np.pi - arcsin(sin(theta5) * (cos(theta1) * sin(theta4) - cos(theta4) * (
-            cos(0.1488 + theta3) * sin(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
-        0.1488 + theta3) * sin(
-        theta1))) + cos(theta5) * (
-                          sin(0.1488 - theta2) * cos(0.1488 + theta3) * sin(theta1) - sin(0.1488 + theta3) * sin(
-                      theta1) * cos(0.1488 - theta2)))
+    r32 = - sin(theta6) * (cos(theta2 + theta3) * sin(theta5) + sin(theta2 + theta3) * cos(theta4) * cos(theta5)) - sin(
+        theta2 + theta3) * cos(theta6) * sin(theta4)
+    r31 = cos(theta6) * (cos(theta2 + theta3) * sin(theta5) + sin(theta2 + theta3) * cos(theta4) * cos(theta5)) - sin(
+        theta2 + theta3) * sin(theta4) * sin(theta6)
+    r33 = sin(theta2 + theta3) * cos(theta4) * sin(theta5) - cos(theta2 + theta3) * cos(theta5)
+    r12 = cos(theta6) * (cos(theta1) * cos(theta4) + cos(theta2 + theta3) * sin(theta1) * sin(theta4)) - sin(theta6) * (
+            cos(theta5) * (cos(theta1) * sin(theta4) - cos(theta2 + theta3) * cos(theta4) * sin(theta1)) + sin(
+        theta2 + theta3) * sin(theta1) * sin(theta5))
+    r22 = cos(theta6) * (cos(theta4) * sin(theta1) - cos(theta2 + theta3) * cos(theta1) * sin(theta4)) - sin(theta6) * (
+            cos(theta5) * (sin(theta1) * sin(theta4) + cos(theta2 + theta3) * cos(theta1) * cos(theta4)) - sin(
+        theta2 + theta3) * cos(theta1) * sin(theta5))
 
-    gamma = arctan2(-(cos(theta6) * (cos(theta1) * cos(theta4) + sin(theta4) * (
-            cos(0.1488 + theta3) * sin(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
-        0.1488 + theta3) * sin(
-        theta1))) - sin(theta6) * (cos(theta5) * (cos(theta1) * sin(theta4) - cos(theta4) * (
-            cos(0.1488 + theta3) * sin(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
-        0.1488 + theta3) * sin(
-        theta1))) - sin(theta5) * (sin(0.1488 - theta2) * cos(0.1488 + theta3) * sin(theta1) - sin(
-        0.1488 + theta3) * sin(
-        theta1) * cos(0.1488 - theta2)))) / cos(beta),
-                    (sin(theta6) * (cos(theta1) * cos(theta4) + sin(theta4) * (
-                            cos(0.1488 + theta3) * sin(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
-                        0.1488 + theta3) * sin(theta1))) + cos(theta6) * (cos(theta5) * (
-                            cos(theta1) * sin(theta4) - cos(theta4) * (
-                            cos(0.1488 + theta3) * sin(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
-                        0.1488 + theta3) * sin(theta1))) - sin(theta5) * (sin(0.1488 - theta2) * cos(
-                        0.1488 + theta3) * sin(theta1) - sin(0.1488 + theta3) * sin(theta1) * cos(
-                        0.1488 - theta2)))) / cos(
-                        beta))
+    beta = np.pi - arcsin(r32)
 
-    alpha = arctan2(-(sin(theta5) * (sin(theta1) * sin(theta4) + cos(theta4) * (
-            cos(0.1488 + theta3) * cos(theta1) * cos(0.1488 - theta2) + sin(0.1488 - theta2) * sin(
-        0.1488 + theta3) * cos(
-        theta1))) - cos(theta5) * (sin(0.1488 - theta2) * cos(0.1488 + theta3) * cos(theta1) - sin(
-        0.1488 + theta3) * cos(
-        theta1) * cos(0.1488 - theta2))) / cos(beta),
-                    (- cos(theta5) * (sin(0.1488 - theta2) * sin(0.1488 + theta3) + cos(0.1488 + theta3) * cos(
-                        0.1488 - theta2)) - cos(theta4) * sin(theta5) * (
-                             sin(0.1488 - theta2) * cos(0.1488 + theta3) - sin(0.1488 + theta3) * cos(
-                         0.1488 - theta2))) / cos(beta))
+    gamma = arctan2(-r31 / cos(beta), r33 / cos(beta))
 
-    return x, y, z, alpha, beta, gamma
+    alpha = arctan2(-r12 / cos(beta), r22 / cos(beta))
+
+    # return x, y, z, alpha, beta, gamma
+    return x, y, z, alpha-np.pi/2, beta-np.pi, gamma  # alpha(z), beta(x), gamma(y)

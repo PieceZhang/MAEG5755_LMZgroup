@@ -186,7 +186,7 @@ class _IKSolverCUTER(object):
             if zfunc is None:
                 qtlast = qtlast + dt * (invJq @ dxc)
             else:  # if use null space
-                z = zfunc(qtlast)  # null space vector
+                z = zfunc(qtlast, FK=FK, invJq=invJq, offset=offset, i=i)  # null space vector
                 qtlast = qtlast + (dt * (invJq @ dxc)[:, None] + (np.eye(dof) - invJq @ Jq) @ z).transpose()
             # limit
             for j in range(qtlast.shape[1]):
@@ -194,9 +194,9 @@ class _IKSolverCUTER(object):
             # cat
             qt = np.concatenate([qt, list(map(lambda x: rad2deg(offset(x)), qtlast))[0][None, :]])
             # for debug
-            # et = np.concatenate([et, (xyz - FK(q=offset(qtlast[0])))[None, :]])
-            # xfk = np.concatenate([xfk, np.array(FK(q=offset(qtlast[0])))[None, :]])
-            # print(xyz, FK(q=deg2rad(qt[-1])))
+            et = np.concatenate([et, (xyz - FK(q=offset(qtlast[0])))[None, :]])
+            xfk = np.concatenate([xfk, np.array(FK(q=offset(qtlast[0])))[None, :]])
+            print(xyz, FK(q=deg2rad(qt[-1])))
 
         # for i in range(et.shape[1]):
         #     plt.plot(np.arange(0, et.shape[0], 1), et[:, i])
@@ -252,7 +252,6 @@ class IKSolverCUTER3DoFNum(_IKSolverCUTER3DoF):
         super().__init__()
 
     def __call__(self, taskspace: list):
-
         def J(_):
             # redefine variables name
             l1 = self.l1
@@ -353,19 +352,36 @@ class IKSolverCUTER6DoFNumxyz(_IKSolverCUTER6DoF):
         initq = deg2rad(initq)
         initq = np.concatenate([initq, np.array([[0, 0, 0]])], axis=1)
 
-        def zfunc(qtlast):
-            qd = deg2rad(np.array([[np.mean([self.theta_max_deg[0], self.theta_min_deg[0]])],
-                                   [np.mean([self.theta_max_deg[1], self.theta_min_deg[1]])],
-                                   [np.mean([self.theta_max_deg[2], self.theta_min_deg[2]])],
-                                   [np.mean([self.theta_max_deg[3], self.theta_min_deg[3]])],
-                                   [np.mean([self.theta_max_deg[4], self.theta_min_deg[4]])],
-                                   [np.mean([self.theta_max_deg[5], self.theta_min_deg[5]])]]))
-            a = 0.4
-            z = -a * (qtlast.transpose() - qd)
-            return z
+        # def zfunc(qtlast, **kw):
+        #     qd = deg2rad(np.array([[np.mean([self.theta_max_deg[0], self.theta_min_deg[0]])],
+        #                            [np.mean([self.theta_max_deg[1], self.theta_min_deg[1]])],
+        #                            [np.mean([self.theta_max_deg[2], self.theta_min_deg[2]])],
+        #                            [np.mean([self.theta_max_deg[3], self.theta_min_deg[3]])],
+        #                            [np.mean([self.theta_max_deg[4], self.theta_min_deg[4]])],
+        #                            [np.mean([self.theta_max_deg[5], self.theta_min_deg[5]])]]))
+        #     a = 0.4
+        #     z = -a * (qtlast.transpose() - qd)
+        #     return z
 
-        qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, dof=6, zfunc=zfunc)
-        # qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, dof=6, zfunc=None)
+        # def zfunc(qtlast, **kw):  # for Penguin_right
+        #     FK = kw['FK']
+        #     offset = kw['offset']
+        #     # optimization
+        #     if np.linalg.norm(np.array([6, 35, 6]) - FK(q=offset(qtlast[0]))) <= 10:
+        #         qd = np.array([[-0.03952699], [1.41191376], [-2.07545416], [deg2rad(70)], [deg2rad(50)], [0]])
+        #         a = np.array([3, 3, 3, 0.2, 0.2, 0.2])
+        #         z = -a[:, None] * (qtlast.transpose() - qd)
+        #     else:
+        #         qd = np.array([[deg2rad(np.mean([self.theta_max_deg[0], self.theta_min_deg[0]]))],
+        #                        [deg2rad(np.mean([self.theta_max_deg[1], self.theta_min_deg[1]]))],
+        #                        [deg2rad(np.mean([self.theta_max_deg[2], self.theta_min_deg[2]]))],
+        #                        [deg2rad(90)], [deg2rad(-20)], [deg2rad(-40)]])
+        #         a = np.array([0.1, 0.1, 0.1, 0.2, 0.2, 0.2])
+        #         z = -a[:, None] * (qtlast.transpose() - qd)
+        #     return z
+
+        # qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, dof=6, zfunc=zfunc)
+        qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, dof=6, zfunc=None)
 
         # for i in range(qt.shape[1]):
         #     plt.plot(np.arange(0, qt.shape[0], 1), qt[:, i])

@@ -25,7 +25,7 @@ class _IKSolverCUTER(object):
         """
         Basic IK solver class
         """
-        self.theta_min_deg = [-90, -15, -140, -180, -110, -180]
+        self.theta_min_deg = [-90, 0, -140, -180, -110, -180]
         self.theta_max_deg = [90, 180, 45, 180, 110, 180]
         self.l1 = 10.18
         self.l2 = 19.41
@@ -161,6 +161,7 @@ class _IKSolverCUTER(object):
         dxr = np.concatenate([dxr, dxr[-1, :][None, :]])
         dt = 0.02  # time step 50Hz
         qt = np.ndarray((0, dof))  # qt
+        xfk = np.ndarray((0, taskspace.shape[1]))
         et = np.ndarray((0, taskspace.shape[1]))  # et
         if taskspace.shape[1] == 3:
             Kp = np.array([25 for _ in range(3)])
@@ -179,8 +180,8 @@ class _IKSolverCUTER(object):
             else:  # [x y z alpha beta gamma]
                 xyz = np.array([-xyz[0], -xyz[2], xyz[1], deg2rad(xyz[3]), deg2rad(xyz[4]), deg2rad(xyz[5])])
             dxc = dxr[i, :] + Kp * (xyz - FK(q=offset(qtlast[0])))  # dx control
-            # Jq = J(qtlast)
-            Jq = J(qtlast, xyz[3], xyz[4])
+            Jq = J(qtlast)
+            # Jq = J(qtlast, xyz[3], xyz[4])
             invJq = np.linalg.pinv(Jq)
             if zfunc is None:
                 qtlast = qtlast + dt * (invJq @ dxc)
@@ -193,9 +194,22 @@ class _IKSolverCUTER(object):
             # cat
             qt = np.concatenate([qt, list(map(lambda x: rad2deg(offset(x)), qtlast))[0][None, :]])
             # for debug
-            et = np.concatenate([et, (xyz - FK(q=offset(qtlast[0])))[None, :]])
-            print(xyz, FK(q=deg2rad(qt[-1])))
+            # et = np.concatenate([et, (xyz - FK(q=offset(qtlast[0])))[None, :]])
+            # xfk = np.concatenate([xfk, np.array(FK(q=offset(qtlast[0])))[None, :]])
+            # print(xyz, FK(q=deg2rad(qt[-1])))
 
+        # for i in range(et.shape[1]):
+        #     plt.plot(np.arange(0, et.shape[0], 1), et[:, i])
+        # plt.legend(['X err', 'Y err', 'Z err'])
+        # plt.show()
+        # for i in range(xfk.shape[1]):
+        #     plt.plot(np.arange(0, xfk.shape[0], 1), xfk[:, i])
+        # plt.plot(np.arange(0, taskspace.shape[0], 1), -taskspace[:, 0])
+        # plt.plot(np.arange(0, taskspace.shape[0], 1), -taskspace[:, 2])
+        # plt.plot(np.arange(0, taskspace.shape[0], 1), taskspace[:, 1])
+        # plt.legend(['X (FK)', 'Y (FK)', 'Z (FK)',
+        #             'X (x)', 'Y (x)', 'Z (x)'])
+        # plt.show()
         return qt
 
 
@@ -218,12 +232,14 @@ class IKSolverCUTER3DoFAna(_IKSolverCUTER3DoF):
     def __call__(self, taskspace: list):
         taskspace = np.array(taskspace).transpose()
         qt = np.ndarray((0, 3))
+        et = np.ndarray((0, taskspace.shape[1]))
         for xyz in taskspace:
             x = -xyz[0]
             z = xyz[1]
             y = -xyz[2]  # exchange y and z to match the coor in the simulator
             q = self.solve3dofana(x, y, z)
             qt = np.concatenate([qt, q])
+            et = np.concatenate([et, (np.array([x, y, z]) - CUTER_FK_3DOF(self, deg2rad(q[0])))[None, :]])
         return qt.transpose().tolist()
 
 
@@ -344,10 +360,16 @@ class IKSolverCUTER6DoFNumxyz(_IKSolverCUTER6DoF):
                                    [np.mean([self.theta_max_deg[3], self.theta_min_deg[3]])],
                                    [np.mean([self.theta_max_deg[4], self.theta_min_deg[4]])],
                                    [np.mean([self.theta_max_deg[5], self.theta_min_deg[5]])]]))
-            a = 0.02
+            a = 0.4
             z = -a * (qtlast.transpose() - qd)
             return z
 
         qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, dof=6, zfunc=zfunc)
         # qt = self.solvenum(taskspace, J, partial(CUTER_FK_6DOFxyz, ik=self), initq, dof=6, zfunc=None)
+
+        # for i in range(qt.shape[1]):
+        #     plt.plot(np.arange(0, qt.shape[0], 1), qt[:, i])
+        # plt.legend(['Joint 1', 'Joint 2', 'Joint 3', 'Joint 4', 'Joint 5', 'Joint 6'])
+        # plt.show()
+
         return qt.transpose().tolist()

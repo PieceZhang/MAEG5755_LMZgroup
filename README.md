@@ -1,6 +1,7 @@
 # MAEG5755 Robotics - LMZgroup Project
 ### Robot arm manipulation and trajectory generation system
 ### Dec.20.2022
+**Project code will be released open source at https://github.com/PieceZhang/MAEG5755_LMZgroup after final assessment** 
 
 ## Group Member
 - 1155178501 LUO, Fan  

@@ -181,7 +181,7 @@ class _IKSolverCUTER(object):
                 xyz = np.array([-xyz[0], -xyz[2], xyz[1], deg2rad(xyz[3]), deg2rad(xyz[4]), deg2rad(xyz[5])])
             dxc = dxr[i, :] + Kp * (xyz - FK(q=offset(qtlast[0])))  # dx control
             Jq = J(qtlast)
-            # Jq = J(qtlast, xyz[3], xyz[4])
+            # Jq = J(qtlast, alpha=xyz[3], beta=xyz[4])  # for 6 dof num IK
             invJq = np.linalg.pinv(Jq)
             if zfunc is None:
                 qtlast = qtlast + dt * (invJq @ dxc)
@@ -194,9 +194,9 @@ class _IKSolverCUTER(object):
             # cat
             qt = np.concatenate([qt, list(map(lambda x: rad2deg(offset(x)), qtlast))[0][None, :]])
             # for debug
-            et = np.concatenate([et, (xyz - FK(q=offset(qtlast[0])))[None, :]])
-            xfk = np.concatenate([xfk, np.array(FK(q=offset(qtlast[0])))[None, :]])
-            print(xyz, FK(q=deg2rad(qt[-1])))
+            # et = np.concatenate([et, (xyz - FK(q=offset(qtlast[0])))[None, :]])
+            # xfk = np.concatenate([xfk, np.array(FK(q=offset(qtlast[0])))[None, :]])
+            # print(xyz, FK(q=deg2rad(qt[-1])))
 
         # for i in range(et.shape[1]):
         #     plt.plot(np.arange(0, et.shape[0], 1), et[:, i])
@@ -252,7 +252,7 @@ class IKSolverCUTER3DoFNum(_IKSolverCUTER3DoF):
         super().__init__()
 
     def __call__(self, taskspace: list):
-        def J(_):
+        def J(_, **kw):
             # redefine variables name
             l1 = self.l1
             l2 = sqrt(self.l2 ** 2 + self.l3 ** 2)
@@ -310,7 +310,7 @@ class IKSolverCUTER6DoFNum(_IKSolverCUTER6DoF):
         super().__init__()
 
     def __call__(self, taskspace: list):
-        def J(_, alpha, beta):
+        def J(_, alpha, beta, **kw):
             theta1 = _[0, 0]
             theta2 = _[0, 1]
             theta3 = _[0, 2]
@@ -338,7 +338,7 @@ class IKSolverCUTER6DoFNumxyz(_IKSolverCUTER6DoF):
         super().__init__()
 
     def __call__(self, taskspace: list):
-        def J(_):
+        def J(_, **kw):
             theta1 = _[0, 0]
             theta2 = _[0, 1]
             theta3 = _[0, 2]

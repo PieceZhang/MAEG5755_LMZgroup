@@ -5,11 +5,11 @@ if __name__ == '__main__':
     print('# Copyright (c) Zhang Yuelin. All Rights Reserved.\nMAEG5755 Robotics - LMZgroup Project')
     loc_Penguin_right = [-6, 6, -35]
     path_Penguin_right = [[-8, 30, -8],
-                          [-2, 26.5, -11.5],
+                          # [-2, 26.5, -11.5],
                           [-0.50, 23, -15],
-                          [0.5, 19.5, -18.5],
+                          # [0.5, 19.5, -18.5],
                           [2.50, 16.0, -22],
-                          [2.50, 16.0, -25.5],
+                          # [2.50, 16.0, -25.5],
                           [-1.00, 12.5, -29.0],
                           [-4.50, 9.00, -32.5]]
 
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     return_str = 'angle;'
     for trajectory in whole_traj:
         return_str += ",".join([str(i) for i in trajectory]) + ";"
-    with open('linear_trajectory.txt', 'w') as f:
+    with open('oa_trajectory.txt', 'w') as f:
         f.write(return_str)
 
     print("[INFO] Generate trajectory successfully.")

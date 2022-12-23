@@ -1,12 +1,13 @@
 # MAEG5755 Robotics - LMZgroup Project
 ### Robot arm manipulation and trajectory generation system
 ### Dec.20.2022
+**written by ZHANG Yuelin**  
 **Project code will be released open source at https://github.com/PieceZhang/MAEG5755_LMZgroup after final assessment** 
 
 ## Group Member
-- 1155178501 LUO, Fan  
-- 1155171377 MIANO, Seth Ephraim Amora  
-- 1155185435 ZHANG, Yuelin  
+- LUO, Fan  
+- MIANO, Seth Ephraim Amora  
+- ZHANG, Yuelin  
 (In alphabetical order)
 
 ## Files Description

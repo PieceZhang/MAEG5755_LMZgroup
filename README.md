@@ -3,6 +3,7 @@
 ### Dec.20.2022
 **written by ZHANG Yuelin**  
 **Project code will be released open source at https://github.com/PieceZhang/MAEG5755_LMZgroup after final assessment** 
+**See https://drive.google.com/drive/folders/1sTf8wHw-eGJKv_hgk_zIzlkV0jfu85iO?usp=share_link for test video** 
 
 ## Group Member
 - LUO, Fan  
